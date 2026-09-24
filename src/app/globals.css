@@ -177,11 +177,13 @@ html.has-cursor textarea {
     animation: none;
     transition: none;
   }
+  /* Slow ambient loops (ticker, sheen) stay: they are gentle and do not move the layout. */
   .grain::after,
-  .word > span,
-  .sheen::after,
-  .marquee {
+  .word > span {
     animation: none;
+  }
+  .marquee {
+    animation-duration: 120s;
   }
   .wordmark {
     letter-spacing: 0.18em;

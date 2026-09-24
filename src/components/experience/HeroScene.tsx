@@ -7,7 +7,7 @@ import type { Quality } from "./MonolithScene";
 // three.js is only downloaded after the page is interactive and never on the server.
 const MonolithScene = dynamic(() => import("./MonolithScene"), { ssr: false });
 
-type Setup = { quality: Quality; still: boolean } | null;
+type Setup = { quality: Quality; calm: boolean } | null;
 
 function detectSetup(): Setup {
   try {
@@ -20,7 +20,7 @@ function detectSetup(): Setup {
   const weak = (navigator.hardwareConcurrency ?? 8) <= 4;
   return {
     quality: coarse || weak ? "low" : "high",
-    still: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    calm: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   };
 }
 
@@ -64,7 +64,7 @@ export default function HeroScene() {
         >
           <MonolithScene
             quality={setup.quality}
-            still={setup.still}
+            calm={setup.calm}
             active={active}
             onReady={() => setReady(true)}
           />
