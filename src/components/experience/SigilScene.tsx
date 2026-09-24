@@ -3,25 +3,47 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer, PerformanceMonitor } from "@react-three/drei";
-import { Bloom, EffectComposer, ToneMapping } from "@react-three/postprocessing";
-import { ToneMappingMode } from "postprocessing";
+import { Bloom, ChromaticAberration, EffectComposer, ToneMapping } from "@react-three/postprocessing";
+import { BlendFunction, ToneMappingMode } from "postprocessing";
 import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
 import * as THREE from "three";
+import type { Theme } from "@/lib/theme";
 import { EYE_PATH, EYE_VIEWBOX } from "./eye-path";
 
-// The hero's 3D layer: the ANUBIS Eye extruded in polished silver, floating in dark space.
-// Light "from space" = a soft halo and slow rays behind the sigil, a light strip gliding over
-// the metal, and (on capable devices) a gentle bloom on the brightest highlights.
+// The hero's 3D layer: the ANUBIS Eye extruded in polished silver, floating in space.
+//
+// Optics, kept physically motivated and subtle:
+// - the silver has a thin-film layer (iridescence) and brushed-metal anisotropy, so grazing
+//   highlights stretch and pick up a faint spectral tint;
+// - stars behind the sigil are displaced by a point-mass gravitational lens, so the sky bends
+//   around the mark as it moves, with a faint photon ring at the Einstein radius;
+// - dark theme only: a soft halo with slow rays, bloom on the brightest glints, and a touch of
+//   radial chromatic aberration at the frame edges, as a real lens would show.
+// Light theme turns the same scene into a pale studio: silver against light, dust instead of stars.
 // All commerce UI lives in HTML on top.
 
 export type Quality = "high" | "low";
 
-const BG = "#050505";
+type Palette = {
+  bg: string;
+  /** Fog start/end distance: pale haze must be thinner than dark haze or the silver washes out. */
+  fog: [number, number];
+  star: string;
+  starOpacity: number;
+  glow: number;
+};
+
+const PALETTE: Record<Theme, Palette> = {
+  dark: { bg: "#030303", fog: [7, 16], star: "#f2f2f2", starOpacity: 1, glow: 1 },
+  light: { bg: "#f1f1f1", fog: [9, 24], star: "#1a1a1a", starOpacity: 0.55, glow: 0 },
+};
 
 /** Raises the sigil so the bottom-aligned headline does not cover it. */
 const LIFT = 0.7;
 /** Rendered width of the sigil in world units. */
 const SIGIL_WIDTH = 2.3;
+/** Einstein radius of the lens in screen units (fraction of the viewport height). */
+const EINSTEIN_RADIUS = 0.16;
 
 /** Raw pointer in -1..1, written by the DOM listener. `at` = time of the last move (ms). */
 const pointer = { x: 0, y: 0, at: -Infinity };
@@ -29,6 +51,10 @@ const pointer = { x: 0, y: 0, at: -Infinity };
 const IDLE_MS = 2500;
 /** Eased pointer, updated once per frame; everything in the scene reads this one. */
 const eased = { x: 0, y: 0 };
+/** The sigil's centre in normalised device coordinates, shared with the lensing shader. */
+const lensCenter = new THREE.Vector2();
+/** Distance from the camera to the sigil; only stars farther than this are lensed. */
+const lens = { depth: 7 };
 
 /**
  * Where the sigil sits for the current screen shape. Wide screens: to the right of the
@@ -65,6 +91,22 @@ function PointerEase() {
   return null;
 }
 
+/** Eases the background and fog toward the current theme, so switching feels like dusk/dawn. */
+function ThemeRig({ theme }: { theme: Theme }) {
+  const target = useMemo(() => new THREE.Color(PALETTE[theme].bg), [theme]);
+  useFrame((state, delta) => {
+    const k = 1 - Math.exp(-3 * step(delta));
+    if (state.scene.background instanceof THREE.Color) state.scene.background.lerp(target, k);
+    const fog = state.scene.fog;
+    if (fog instanceof THREE.Fog) {
+      fog.color.lerp(target, k);
+      fog.near += (PALETTE[theme].fog[0] - fog.near) * k;
+      fog.far += (PALETTE[theme].fog[1] - fog.far) * k;
+    }
+  });
+  return null;
+}
+
 function useSigilGeometry() {
   return useMemo(() => {
     const [x, y, w, h] = EYE_VIEWBOX;
@@ -91,6 +133,7 @@ function Sigil({ calm }: { calm: boolean }) {
   const group = useRef<THREE.Group>(null);
   const geometry = useSigilGeometry();
   const anchor = useAnchor();
+  const world = useMemo(() => new THREE.Vector3(), []);
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   useFrame((state, delta) => {
@@ -106,6 +149,12 @@ function Sigil({ calm }: { calm: boolean }) {
     g.rotation.y = THREE.MathUtils.damp(g.rotation.y, targetY, 2, dt);
     g.rotation.x = THREE.MathUtils.damp(g.rotation.x, targetX, 2, dt);
     g.position.y = anchor.y + Math.sin(t * 0.4) * 0.06;
+
+    // Publish where the lens is on screen for the star shader.
+    g.getWorldPosition(world);
+    lens.depth = world.distanceTo(state.camera.position);
+    world.project(state.camera);
+    lensCenter.set(world.x, world.y);
   });
 
   return (
@@ -114,9 +163,15 @@ function Sigil({ calm }: { calm: boolean }) {
         <meshPhysicalMaterial
           color="#c9ccd1"
           metalness={1}
-          roughness={0.14}
+          roughness={0.16}
           clearcoat={0.5}
           clearcoatRoughness={0.08}
+          // Thin-film interference: a faint spectral sheen at grazing angles.
+          iridescence={0.45}
+          iridescenceIOR={1.35}
+          iridescenceThicknessRange={[180, 420]}
+          // Brushed-metal anisotropy: highlights stretch along the surface instead of pooling.
+          anisotropy={0.35}
           envMapIntensity={1}
         />
       </mesh>
@@ -132,32 +187,43 @@ const glowVertex = /* glsl */ `
   }
 `;
 
-// Soft halo plus thin rays radiating from behind the sigil; additive, so it only adds light.
+// Soft halo, slow rays and a faint photon ring behind the sigil; additive, so it only adds light.
 const glowFragment = /* glsl */ `
   uniform float uTime;
   uniform float uRays;
+  uniform float uStrength;
   varying vec2 vUv;
   void main() {
     vec2 p = vUv * 2.0 - 1.0;
     float r = length(p);
     float a = atan(p.y, p.x);
-    float halo = exp(-r * r * 9.0) * 0.22 + exp(-r * 3.2) * 0.05;
+    float halo = exp(-r * r * 10.0) * 0.14 + exp(-r * 3.4) * 0.03;
     float pulse = 0.85 + 0.15 * sin(uTime * 0.6);
     float rays = pow(abs(sin(a * 6.0 + uTime * 0.04)), 40.0) * 0.6
                + pow(abs(sin(a * 11.0 - uTime * 0.03 + 1.3)), 60.0) * 0.35;
     rays *= smoothstep(1.0, 0.15, r) * smoothstep(0.0, 0.18, r) * uRays;
-    float light = (halo * pulse + rays * 0.45);
+    float ring = exp(-pow((r - 0.26) / 0.02, 2.0)) * 0.025;
+    float light = (halo * pulse + rays * 0.32 + ring) * uStrength;
     gl_FragColor = vec4(vec3(0.93, 0.95, 1.0) * light, light);
   }
 `;
 
-function SpaceGlow({ rays }: { rays: boolean }) {
+function SpaceGlow({ rays, theme }: { rays: boolean; theme: Theme }) {
   const material = useRef<THREE.ShaderMaterial>(null);
-  const uniforms = useMemo(() => ({ uTime: { value: 0 }, uRays: { value: rays ? 1 : 0 } }), [rays]);
+  const [uniforms] = useState(() => ({
+    uTime: { value: 0 },
+    uRays: { value: rays ? 1 : 0 },
+    uStrength: { value: PALETTE[theme].glow },
+  }));
   const anchor = useAnchor();
 
-  useFrame((state) => {
-    if (material.current) material.current.uniforms.uTime.value = state.clock.elapsedTime;
+  useFrame((state, delta) => {
+    const m = material.current;
+    if (!m) return;
+    m.uniforms.uTime.value = state.clock.elapsedTime;
+    m.uniforms.uRays.value = rays ? 1 : 0;
+    // Theme changes fade the glow rather than cutting it.
+    m.uniforms.uStrength.value = THREE.MathUtils.damp(m.uniforms.uStrength.value, PALETTE[theme].glow, 3, step(delta));
   });
 
   return (
@@ -177,6 +243,49 @@ function SpaceGlow({ rays }: { rays: boolean }) {
   );
 }
 
+// Stars as round soft points, bent by a point-mass gravitational lens centred on the sigil:
+// a star at angular distance r from the lens appears pushed outward by θE² / r, and brightens
+// near the Einstein ring. Only stars behind the sigil are lensed.
+const starVertex = /* glsl */ `
+  uniform vec2 uCenter;
+  uniform float uEinstein;
+  uniform float uLensDepth;
+  uniform float uAspect;
+  uniform float uSize;
+  uniform float uScale;
+  varying float vGain;
+  void main() {
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    vec4 clip = projectionMatrix * mv;
+    vec2 ndc = clip.xy / clip.w;
+
+    vec2 d = ndc - uCenter;
+    d.x *= uAspect;
+    float r = max(length(d), 1e-4);
+    float behind = smoothstep(uLensDepth, uLensDepth + 0.8, -mv.z);
+    float shift = min(uEinstein * uEinstein / r, 0.35) * behind;
+    vec2 off = d / r * shift;
+    off.x /= uAspect;
+    clip.xy = (ndc + off) * clip.w;
+    gl_Position = clip;
+
+    vGain = 1.0 + behind * min(uEinstein * uEinstein / (r * r), 2.5) * 0.6;
+    gl_PointSize = uSize * uScale / -mv.z * sqrt(vGain);
+  }
+`;
+
+const starFragment = /* glsl */ `
+  uniform vec3 uColor;
+  uniform float uOpacity;
+  varying float vGain;
+  void main() {
+    float d = length(gl_PointCoord - 0.5);
+    if (d > 0.5) discard;
+    float a = smoothstep(0.5, 0.05, d) * uOpacity * vGain;
+    gl_FragColor = vec4(uColor, min(a, 1.0));
+  }
+`;
+
 /** Deterministic pseudo-random field so re-mounts produce the same sky. */
 function makeField(count: number, seed: number, spread: [number, number, number]) {
   let s = seed;
@@ -194,7 +303,7 @@ function makeField(count: number, seed: number, spread: [number, number, number]
  * One layer of stars/dust. It drifts on its own and shifts against the cursor;
  * nearer layers shift more, which reads as depth.
  */
-function Dust({
+function Stars({
   count,
   seed,
   size,
@@ -202,6 +311,7 @@ function Dust({
   depth,
   drift,
   z,
+  theme,
 }: {
   count: number;
   seed: number;
@@ -212,18 +322,42 @@ function Dust({
   /** Rotation speed, rad/s. */
   drift: number;
   z: number;
+  theme: Theme;
 }) {
   const points = useRef<THREE.Points>(null);
+  const material = useRef<THREE.ShaderMaterial>(null);
   const positions = useMemo(() => makeField(count, seed, [14, 8, 6]), [count, seed]);
+  const color = useMemo(() => new THREE.Color(PALETTE[theme].star), [theme]);
+  const [uniforms] = useState(() => ({
+    uCenter: { value: lensCenter },
+    uEinstein: { value: EINSTEIN_RADIUS },
+    uLensDepth: { value: lens.depth },
+    uAspect: { value: 1 },
+    uSize: { value: size },
+    uScale: { value: 400 },
+    uColor: { value: new THREE.Color(PALETTE[theme].star) },
+    uOpacity: { value: opacity * PALETTE[theme].starOpacity },
+  }));
 
   useFrame((state, delta) => {
     const p = points.current;
-    if (!p) return;
+    const m = material.current;
+    if (!p || !m) return;
     const dt = step(delta);
     p.rotation.y += dt * drift;
     p.rotation.z = Math.sin(state.clock.elapsedTime * 0.05) * 0.05;
     p.position.x = THREE.MathUtils.damp(p.position.x, -eased.x * depth, 2, dt);
     p.position.y = THREE.MathUtils.damp(p.position.y, -eased.y * depth * 0.6, 2, dt);
+
+    const u = m.uniforms;
+    const aspect = state.size.width / state.size.height;
+    u.uLensDepth.value = lens.depth;
+    u.uAspect.value = aspect;
+    // Same scale three.js uses for size-attenuated points: half the drawing-buffer height.
+    u.uScale.value = (state.size.height * state.viewport.dpr) / 2;
+    u.uEinstein.value = EINSTEIN_RADIUS * (aspect < 1 ? 0.7 : 1);
+    (u.uColor.value as THREE.Color).lerp(color, 1 - Math.exp(-3 * dt));
+    u.uOpacity.value = THREE.MathUtils.damp(u.uOpacity.value, opacity * PALETTE[theme].starOpacity, 3, dt);
   });
 
   return (
@@ -231,12 +365,12 @@ function Dust({
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial
-        size={size}
-        color="#f2f2f2"
+      <shaderMaterial
+        ref={material}
+        vertexShader={starVertex}
+        fragmentShader={starFragment}
+        uniforms={uniforms}
         transparent
-        opacity={opacity}
-        sizeAttenuation
         depthWrite={false}
       />
     </points>
@@ -244,14 +378,56 @@ function Dust({
 }
 
 /** A light strip drifting slowly, pulled toward the cursor, so a bright glint glides across the silver. */
-function SweepLight() {
+function SweepLight({ color = "#ffffff", intensity = 6 }: { color?: string; intensity?: number }) {
   const light = useRef<THREE.Mesh>(null);
   useFrame((state) => {
     if (light.current) {
       light.current.position.x = Math.sin(state.clock.elapsedTime * 0.15) * 3 + eased.x * 3;
     }
   });
-  return <Lightformer ref={light} form="rect" intensity={6} position={[0, 0, 4]} scale={[0.35, 10, 1]} />;
+  return (
+    <Lightformer
+      ref={light}
+      form="rect"
+      color={color}
+      intensity={intensity}
+      position={[0, 0, 4]}
+      scale={[0.35, 10, 1]}
+    />
+  );
+}
+
+/** What the silver reflects. Dark: black space with thin bright strips. Light: a pale studio with dark flags. */
+function Surroundings({ theme, high }: { theme: Theme; high: boolean }) {
+  return (
+    <Environment
+      // Rebuild the reflection map when the theme changes (low quality renders it only once).
+      key={theme}
+      resolution={high ? 256 : 64}
+      frames={high ? Infinity : 1}
+    >
+      {theme === "dark" ? (
+        <>
+          <Lightformer form="rect" intensity={0.3} position={[0, 2, 7]} scale={[12, 8, 1]} />
+          <Lightformer form="rect" intensity={4} position={[3, 0, 3]} scale={[0.2, 8, 1]} />
+          <Lightformer form="rect" intensity={2} position={[-3, 1, 2]} scale={[0.1, 6, 1]} />
+          <Lightformer form="rect" intensity={1.2} position={[0, 5, -1]} scale={[8, 0.2, 1]} />
+          <Lightformer form="rect" intensity={2.5} position={[7, 0, 0]} scale={[0.3, 10, 1]} />
+          <Lightformer form="rect" intensity={1.5} position={[-7, 0, 0]} scale={[0.3, 10, 1]} />
+          {high && <SweepLight />}
+        </>
+      ) : (
+        <>
+          <color attach="background" args={["#9c9c9c"]} />
+          <Lightformer form="rect" intensity={1.8} position={[0, 4, 6]} scale={[14, 5, 1]} />
+          <Lightformer form="rect" intensity={1} color="#050505" position={[2.5, 0, 3]} scale={[0.7, 9, 1]} />
+          <Lightformer form="rect" intensity={1} color="#050505" position={[-3.5, 0, 2.5]} scale={[1.1, 9, 1]} />
+          <Lightformer form="rect" intensity={1} color="#050505" position={[0, -5, 2]} scale={[14, 3, 1]} />
+          {high && <SweepLight color="#050505" intensity={1} />}
+        </>
+      )}
+    </Environment>
+  );
 }
 
 function CameraRig({ calm }: { calm: boolean }) {
@@ -286,6 +462,7 @@ export default function SigilScene({
   quality,
   calm,
   active,
+  theme,
   onReady,
 }: {
   quality: Quality;
@@ -293,11 +470,13 @@ export default function SigilScene({
   calm: boolean;
   /** False when the hero is scrolled out of view — stops rendering to save battery. */
   active: boolean;
+  theme: Theme;
   onReady: () => void;
 }) {
-  const [dpr, setDpr] = useState(quality === "high" ? 1.5 : 1);
-  const [bloom, setBloom] = useState(quality === "high");
   const high = quality === "high";
+  const [dpr, setDpr] = useState(high ? 1.5 : 1);
+  const [initial] = useState(PALETTE[theme]);
+  const [aberration] = useState(() => new THREE.Vector2(0.0012, 0.0008));
 
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
@@ -331,43 +510,38 @@ export default function SigilScene({
       }}
       aria-hidden
     >
-      {/* If the device struggles: first drop resolution, then the bloom pass. */}
-      <PerformanceMonitor
-        onDecline={() => {
-          setDpr(1);
-          setBloom(false);
-        }}
-      />
-      <color attach="background" args={[BG]} />
-      <fog attach="fog" args={[BG, 7, 16]} />
+      {/*
+        Only resolution adapts at runtime. Effects are decided once at start: the first seconds
+        (shader compilation) are always slow, and switching bloom off then made the glow vanish.
+      */}
+      <PerformanceMonitor onDecline={() => setDpr(1)} />
+      <color attach="background" args={[initial.bg]} />
+      <fog attach="fog" args={[initial.bg, ...initial.fog]} />
+      <ThemeRig theme={theme} />
 
-      <ambientLight intensity={0.05} />
-      <directionalLight position={[-4, 3, -3]} intensity={1.2} color="#dfe6ee" />
-      <directionalLight position={[3, 2, 4]} intensity={0.35} />
+      <ambientLight intensity={theme === "dark" ? 0.03 : 0.4} />
+      <directionalLight position={[-4, 3, -3]} intensity={theme === "dark" ? 1 : 0.6} color="#dfe6ee" />
+      <directionalLight position={[3, 2, 4]} intensity={0.3} />
 
-      {/* Reflections for the silver come from these local light panels — no HDR download. */}
-      <Environment resolution={high ? 256 : 64} frames={high ? Infinity : 1}>
-        {/* Dim wide panel: silver stays readable; bright strips give it contrast. */}
-        <Lightformer form="rect" intensity={0.5} position={[0, 2, 7]} scale={[12, 8, 1]} />
-        <Lightformer form="rect" intensity={4} position={[3, 0, 3]} scale={[0.2, 8, 1]} />
-        <Lightformer form="rect" intensity={2} position={[-3, 1, 2]} scale={[0.1, 6, 1]} />
-        <Lightformer form="rect" intensity={1.2} position={[0, 5, -1]} scale={[8, 0.2, 1]} />
-        <Lightformer form="rect" intensity={2.5} position={[7, 0, 0]} scale={[0.3, 10, 1]} />
-        <Lightformer form="rect" intensity={1.5} position={[-7, 0, 0]} scale={[0.3, 10, 1]} />
-        {high && <SweepLight />}
-      </Environment>
+      <Surroundings theme={theme} high={high} />
 
       <PointerEase />
-      <SpaceGlow rays={!calm} />
+      <SpaceGlow rays={!calm} theme={theme} />
       <Sigil calm={calm} />
-      {/* Far layer: many fine points, barely moving. Near layer: fewer, larger, more parallax. */}
-      <Dust count={high ? 520 : 180} seed={7} size={0.016} opacity={0.45} depth={0.35} drift={0.02} z={-2} />
-      <Dust count={high ? 200 : 80} seed={31} size={0.028} opacity={0.7} depth={1.1} drift={0.035} z={2} />
+      {/* Far layer: many fine points behind the sigil (lensed). Near layer: fewer, larger, more parallax. */}
+      <Stars count={high ? 700 : 240} seed={7} size={0.018} opacity={0.5} depth={0.35} drift={0.02} z={-3} theme={theme} />
+      <Stars count={high ? 180 : 70} seed={31} size={0.03} opacity={0.75} depth={1.1} drift={0.035} z={2} theme={theme} />
       <CameraRig calm={calm} />
 
-      {bloom && (
+      {high && theme === "dark" && (
         <EffectComposer multisampling={0}>
-          <Bloom mipmapBlur intensity={0.6} luminanceThreshold={0.82} luminanceSmoothing={0.15} />
+          <Bloom mipmapBlur intensity={0.55} luminanceThreshold={0.82} luminanceSmoothing={0.15} />
+          <ChromaticAberration
+            blendFunction={BlendFunction.NORMAL}
+            offset={aberration}
+            radialModulation
+            modulationOffset={0.35}
+          />
           <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
         </EffectComposer>
       )}

@@ -1,19 +1,16 @@
 @import "tailwindcss";
 
-/* ANUBIS palette: black and white, used in alternating sections for contrast.
-   Greys exist only for structure (lines, muted text). */
+/* ANUBIS palette. Two themes, switched with <html data-theme="dark|light">:
+   bg / fg are the page and its text, muted is secondary text, line is hairlines,
+   surface is a soft fill (hover states). ink / white are fixed and never flip. */
 @theme inline {
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-surface: var(--surface);
   --color-ink: #050505;
-  --color-ink-2: #0d0d0d;
-  --color-ink-3: #141414;
-  --color-paper: #f2f2f2;
   --color-white: #ffffff;
-  --color-line: #e2e2e2;
-  --color-line-dark: #1f1f1f;
-  --color-muted: #6b6b6b;
-  --color-muted-dark: #999999;
-  --color-fill: #ececec;
-  --color-fill-dark: #111111;
 
   --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
@@ -23,19 +20,43 @@
   --ease-weight: cubic-bezier(0.16, 0.84, 0.24, 1);
 }
 
+:root,
+:root[data-theme="dark"] {
+  --bg: #050505;
+  --fg: #f2f2f2;
+  --muted: #8c8c8c;
+  --line: #1f1f1f;
+  --surface: #121212;
+  --grain: 0.07;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #ffffff;
+  --fg: #050505;
+  --muted: #6b6b6b;
+  --line: #e2e2e2;
+  --surface: #f2f2f2;
+  --grain: 0.035;
+  color-scheme: light;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
 }
 
 body {
-  background: var(--color-white);
-  color: var(--color-ink);
+  background: var(--bg);
+  color: var(--fg);
+  transition:
+    background-color 0.6s var(--ease-weight),
+    color 0.6s var(--ease-weight);
 }
 
 ::selection {
-  background: var(--color-ink);
-  color: var(--color-white);
+  background: var(--fg);
+  color: var(--bg);
 }
 
 :focus-visible {
@@ -150,9 +171,17 @@ body {
   position: absolute;
   inset: -10%;
   pointer-events: none;
-  opacity: 0.07;
+  opacity: var(--grain);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   animation: grain 0.9s steps(3) infinite;
+}
+
+/* White-on-dark artwork (the SVG sigil is black) that stays dark-on-light in the light theme. */
+.theme-invert {
+  filter: invert(1);
+}
+:root[data-theme="light"] .theme-invert {
+  filter: none;
 }
 
 /* Custom cursor is on: hide the system arrow except where text is typed. */

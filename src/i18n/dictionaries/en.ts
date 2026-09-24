@@ -9,6 +9,8 @@ const en = {
     language: "Language",
     menu: "Main navigation",
     skip: "Skip to content",
+    toLight: "Switch to light theme",
+    toDark: "Switch to dark theme",
   },
   home: {
     kicker: "Collection 001 / Origins",

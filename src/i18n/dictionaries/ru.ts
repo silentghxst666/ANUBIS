@@ -11,6 +11,8 @@ const ru: Dictionary = {
     language: "Язык",
     menu: "Основная навигация",
     skip: "Перейти к содержимому",
+    toLight: "Включить светлую тему",
+    toDark: "Включить тёмную тему",
   },
   home: {
     kicker: "Коллекция 001 / Origins",

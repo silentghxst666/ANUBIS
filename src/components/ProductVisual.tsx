@@ -30,7 +30,7 @@ export default function ProductVisual({
 
   return (
     <div
-      className={`relative aspect-[3/4] w-full overflow-hidden ${dark ? "bg-ink-2 text-white" : "bg-fill text-ink"}`}
+      className={`relative aspect-[3/4] w-full overflow-hidden ${dark ? "bg-[#141414] text-white" : "bg-[#ececec] text-ink"}`}
     >
       {src ? (
         <Image

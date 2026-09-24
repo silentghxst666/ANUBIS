@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+import { useTheme } from "@/lib/theme";
 import type { Quality } from "./SigilScene";
 
 // three.js is only downloaded after the page is interactive and never on the server.
@@ -30,6 +31,7 @@ export default function HeroScene() {
   const [setup, setSetup] = useState<Setup>(null);
   const [ready, setReady] = useState(false);
   const [active, setActive] = useState(true);
+  const theme = useTheme();
 
   useEffect(() => {
     // Wait for idle time so the 3D bundle never competes with the first paint.
@@ -55,9 +57,9 @@ export default function HeroScene() {
       <div
         className={`absolute inset-0 flex items-center justify-center transition-opacity duration-[1600ms] ${ready ? "opacity-0" : "opacity-100"}`}
       >
-        <div className="-translate-y-[9%] rounded-full bg-[radial-gradient(circle,rgba(242,242,242,0.08),transparent_65%)] p-[6vh]">
+        <div className="-translate-y-[9%] rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--fg)_8%,transparent),transparent_65%)] p-[6vh]">
           {/* eslint-disable-next-line @next/next/no-img-element -- decorative inline SVG, no optimisation needed */}
-          <img src="/brand/anubis-eye.svg" alt="" className="h-[34vh] w-auto opacity-60 invert" />
+          <img src="/brand/anubis-eye.svg" alt="" className="theme-invert h-[34vh] w-auto opacity-60" />
         </div>
       </div>
 
@@ -68,6 +70,7 @@ export default function HeroScene() {
           <SigilScene
             quality={setup.quality}
             calm={setup.calm}
+            theme={theme}
             active={active}
             onReady={() => setReady(true)}
           />

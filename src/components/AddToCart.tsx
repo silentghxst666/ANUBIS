@@ -57,8 +57,8 @@ export default function AddToCart({
               }}
               className={`h-12 border text-sm transition-colors duration-300 ${
                 selected
-                  ? "border-ink bg-ink text-white"
-                  : "border-line hover:border-ink disabled:hover:border-line"
+                  ? "border-fg bg-fg text-bg"
+                  : "border-line hover:border-fg disabled:hover:border-line"
               } disabled:cursor-not-allowed disabled:text-muted disabled:line-through`}
             >
               {s}
@@ -71,7 +71,7 @@ export default function AddToCart({
         type="button"
         onClick={add}
         disabled={soldOut || !size}
-        className="label mt-4 h-14 w-full bg-ink text-white transition-opacity duration-300 hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-35"
+        className="label mt-4 h-14 w-full bg-fg text-bg transition-opacity duration-300 hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-35"
       >
         {soldOut ? labels.soldOut : size ? labels.addToCart : labels.selectSize}
       </button>

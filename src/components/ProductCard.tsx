@@ -43,7 +43,7 @@ export default function ProductCard({
       <p className="mt-1 text-sm tabular-nums">{formatPrice(product.price)}</p>
       <p className="label mt-2 text-muted">
         {dict.product.colors[product.color]}
-        {status && <span className="text-ink"> · {status}</span>}
+        {status && <span className="text-fg"> · {status}</span>}
       </p>
     </Link>
   );

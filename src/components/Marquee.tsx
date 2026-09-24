@@ -1,5 +1,5 @@
-/** Slow endless ticker. The content is rendered twice so the loop is seamless. */
-export default function Marquee({ items, dark = false }: { items: string[]; dark?: boolean }) {
+/** Slow endless ticker on an inverted band (the one strip of contrast in either theme). The content is rendered twice so the loop is seamless. */
+export default function Marquee({ items }: { items: string[] }) {
   const row = items.map((item, i) => (
     <span key={i} className="flex items-center gap-10 pr-10">
       {item}
@@ -9,7 +9,7 @@ export default function Marquee({ items, dark = false }: { items: string[]; dark
 
   return (
     <div
-      className={`overflow-hidden border-y py-5 ${dark ? "border-line-dark bg-ink text-muted-dark" : "border-line bg-white text-ink"}`}
+      className="overflow-hidden bg-fg py-5 text-bg"
       aria-label={items.join(" — ")}
     >
       <div className="marquee label flex w-max whitespace-nowrap" aria-hidden>

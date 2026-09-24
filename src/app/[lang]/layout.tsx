@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { locales } from "@/i18n/config";
 import { assertLocale, getDictionary } from "@/i18n/get-dictionary";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Cursor from "@/components/Cursor";
+import { themeBootScript } from "@/lib/theme";
 // Self-hosted fonts (Latin + Cyrillic), bundled from npm — no runtime call to Google Fonts.
 import "@fontsource-variable/manrope";
 import "@fontsource-variable/jetbrains-mono";
@@ -30,11 +32,16 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
   const dict = await getDictionary(lang);
 
   return (
-    <html lang={lang} className="antialiased">
+    // The boot script may switch data-theme before hydration; that difference is expected.
+    <html lang={lang} className="antialiased" data-theme="dark" suppressHydrationWarning>
       <body className="flex min-h-dvh flex-col font-sans">
+        {/* Sets the saved theme before the page paints, so it never flashes. */}
+        <Script id="theme-boot" strategy="beforeInteractive">
+          {themeBootScript}
+        </Script>
         <a
           href="#content"
-          className="label sr-only z-50 bg-white px-4 py-3 text-ink focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+          className="label sr-only z-50 bg-bg px-4 py-3 text-fg focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
         >
           {dict.nav.skip}
         </a>

@@ -38,7 +38,7 @@ export default function CartView({
         <p className="text-muted">{labels.empty}</p>
         <Link
           href={`/${lang}/shop`}
-          className="label mt-6 inline-block border border-ink px-6 py-4 hover:bg-ink hover:text-white"
+          className="label mt-6 inline-block border border-fg px-6 py-4 hover:bg-fg hover:text-bg"
         >
           {labels.continue}
         </Link>
@@ -53,7 +53,7 @@ export default function CartView({
           <li key={`${product.slug}-${size}`} className="flex gap-4 py-5">
             <Link
               href={`/${lang}/product/${product.slug}`}
-              className={`relative aspect-[3/4] w-20 shrink-0 overflow-hidden sm:w-24 ${product.color === "black" ? "bg-ink-2" : "bg-fill"}`}
+              className={`relative aspect-[3/4] w-20 shrink-0 overflow-hidden sm:w-24 ${product.color === "black" ? "bg-[#141414]" : "bg-[#ececec]"}`}
             >
               {product.image && (
                 <Image src={product.image} alt={product.name} fill sizes="96px" className="object-cover" />
@@ -75,7 +75,7 @@ export default function CartView({
                 <div className="flex items-center border border-line">
                   <button
                     type="button"
-                    className="h-9 w-9 hover:bg-fill"
+                    className="h-9 w-9 hover:bg-surface"
                     onClick={() => setQty(product.slug, size, qty - 1)}
                     aria-label={labels.decrease}
                   >
@@ -84,7 +84,7 @@ export default function CartView({
                   <span className="w-8 text-center text-sm tabular-nums">{qty}</span>
                   <button
                     type="button"
-                    className="h-9 w-9 hover:bg-fill"
+                    className="h-9 w-9 hover:bg-surface"
                     onClick={() => setQty(product.slug, size, qty + 1)}
                     aria-label={labels.increase}
                   >
@@ -93,7 +93,7 @@ export default function CartView({
                 </div>
                 <button
                   type="button"
-                  className="label text-muted hover:text-ink"
+                  className="label text-muted hover:text-fg"
                   onClick={() => setQty(product.slug, size, 0)}
                 >
                   {labels.remove}
@@ -113,7 +113,7 @@ export default function CartView({
         <button
           type="button"
           disabled
-          className="label mt-6 h-13 w-full bg-ink text-white disabled:cursor-not-allowed disabled:opacity-40"
+          className="label mt-6 h-13 w-full bg-fg text-bg disabled:cursor-not-allowed disabled:opacity-40"
         >
           {labels.checkout}
         </button>

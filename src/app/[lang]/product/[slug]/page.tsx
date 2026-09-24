@@ -42,7 +42,7 @@ export default async function ProductPage({ params }: PageProps<"/[lang]/product
       body: (
         <p>
           {product.material[lang]}
-          {product.weight && <span className="label ml-2 text-ink">{product.weight}</span>}
+          {product.weight && <span className="label ml-2 text-fg">{product.weight}</span>}
         </p>
       ),
     },
@@ -77,7 +77,7 @@ export default async function ProductPage({ params }: PageProps<"/[lang]/product
 
       <div className="lg:sticky lg:top-24 lg:self-start">
         <nav className="label flex gap-2 text-muted" aria-label="Breadcrumb">
-          <Link href={`/${lang}/shop`} className="hover:text-ink">
+          <Link href={`/${lang}/shop`} className="hover:text-fg">
             {dict.shop.title}
           </Link>
           <span>/</span>
@@ -94,9 +94,9 @@ export default async function ProductPage({ params }: PageProps<"/[lang]/product
 
         <div className="label mt-6 flex flex-wrap gap-x-6 gap-y-2">
           <span className="text-muted">
-            {t.color}: <span className="text-ink">{t.colors[product.color]}</span>
+            {t.color}: <span className="text-fg">{t.colors[product.color]}</span>
           </span>
-          <span className={stock <= LOW_STOCK ? "text-ink" : "text-muted"}>● {status}</span>
+          <span className={stock <= LOW_STOCK ? "text-fg" : "text-muted"}>● {status}</span>
         </div>
 
         <AddToCart

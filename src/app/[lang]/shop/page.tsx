@@ -17,7 +17,7 @@ export default async function Shop({ params, searchParams }: PageProps<"/[lang]/
   const products = await getProducts(active);
 
   const tab = (selected: boolean) =>
-    `label whitespace-nowrap border-b pb-1 ${selected ? "border-ink" : "border-transparent text-muted hover:text-ink"}`;
+    `label whitespace-nowrap border-b pb-1 ${selected ? "border-fg" : "border-transparent text-muted hover:text-fg"}`;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16">
