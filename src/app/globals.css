@@ -18,7 +18,7 @@
   --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
   /* Display face for the wordmark, headlines and section titles. Swap here to change it site-wide. */
-  --font-display: "Cormorant Variable", "Times New Roman", serif;
+  --font-display: "Unbounded Variable", ui-sans-serif, system-ui, sans-serif;
 
   --ease-weight: cubic-bezier(0.16, 0.84, 0.24, 1);
 }
@@ -43,10 +43,10 @@ body {
   outline-offset: 3px;
 }
 
-/* Headlines: high-contrast serif, set in capitals with a little air between letters. */
+/* Headlines: wide geometric face (Unbounded), set in capitals. */
 @utility font-display {
   font-family: var(--font-display);
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
 }
 
 /* Small uppercase technical label used across the site ("ANB-OW-001", section kickers). */

@@ -23,7 +23,7 @@ export default async function CartPage({ params }: PageProps<"/[lang]/cart">) {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16">
-      <h1 className="font-display text-4xl font-medium uppercase sm:text-6xl">{dict.cart.title}</h1>
+      <h1 className="font-display text-3xl font-medium uppercase sm:text-5xl">{dict.cart.title}</h1>
       <CartView lang={lang} catalog={catalog} labels={dict.cart} />
     </div>
   );

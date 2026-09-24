@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { Fragment, type CSSProperties } from "react";
 import Link from "next/link";
 import { assertLocale, getDictionary } from "@/i18n/get-dictionary";
 import { getProducts } from "@/lib/products";
@@ -25,13 +25,16 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
             {dict.home.kicker}
           </p>
           <h1
-            className="font-display mt-5 max-w-4xl font-medium text-[clamp(2.6rem,8vw,6.5rem)] uppercase leading-[0.95]"
+            className="font-display mt-5 max-w-4xl font-medium text-[clamp(1.9rem,6.2vw,5rem)] uppercase leading-[1.02]"
             aria-label={dict.home.heroTitle}
           >
             {dict.home.heroTitle.split(" ").map((word, i) => (
-              <span key={i} className="word" aria-hidden>
-                <span style={{ "--word-delay": `${1000 + i * 140}ms` } as CSSProperties}>{word}</span>{" "}
-              </span>
+              <Fragment key={i}>
+                {i > 0 && " "}
+                <span className="word" aria-hidden>
+                  <span style={{ "--word-delay": `${1000 + i * 140}ms` } as CSSProperties}>{word}</span>
+                </span>
+              </Fragment>
             ))}
           </h1>
           <div
@@ -58,7 +61,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
           <Reveal className="mb-12 flex items-end justify-between gap-6 border-b border-line pb-6">
             <div>
               <p className="label text-muted">{dict.home.kicker}</p>
-              <h2 className="font-display mt-3 text-4xl font-medium uppercase sm:text-6xl">
+              <h2 className="font-display mt-3 text-3xl font-medium uppercase sm:text-5xl">
                 {dict.home.collectionTitle}
               </h2>
             </div>
@@ -81,7 +84,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
         <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-36">
           <Reveal>
             <p className="label text-muted-dark">{dict.home.manifestoKicker}</p>
-            <h2 className="font-display mt-6 max-w-4xl text-3xl font-medium uppercase leading-[1.05] sm:text-6xl">
+            <h2 className="font-display mt-6 max-w-4xl text-2xl font-medium uppercase leading-[1.15] sm:text-5xl">
               {dict.home.manifestoTitle}
             </h2>
           </Reveal>
@@ -98,7 +101,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
               className="border-line-dark px-4 py-12 sm:px-6 [&:not(:first-child)]:border-t sm:[&:not(:first-child)]:border-l sm:[&:not(:first-child)]:border-t-0"
             >
               <p className="label text-muted-dark">0{i + 1}</p>
-              <h3 className="font-display mt-6 text-2xl font-medium uppercase">{pillar.title}</h3>
+              <h3 className="font-display mt-6 text-base font-medium uppercase">{pillar.title}</h3>
               <p className="mt-3 text-sm leading-relaxed text-muted-dark">{pillar.text}</p>
             </Reveal>
           ))}

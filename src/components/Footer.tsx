@@ -8,7 +8,7 @@ export default function Footer({ dict }: { dict: Dictionary }) {
         <Reveal>
           <p
             aria-label="ANUBIS"
-            className="wordmark font-display pl-[0.18em] text-center text-[clamp(3rem,15vw,12rem)] font-light leading-none"
+            className="wordmark font-display pl-[0.18em] text-center text-[clamp(2rem,11vw,9rem)] font-extralight leading-none"
           >
             ANUBIS
           </p>

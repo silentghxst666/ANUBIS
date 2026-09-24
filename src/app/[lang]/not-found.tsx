@@ -5,7 +5,7 @@ export default function NotFound() {
   return (
     <div className="mx-auto flex max-w-7xl flex-col items-start gap-6 px-4 py-32 sm:px-6">
       <p className="label text-muted">404</p>
-      <h1 className="font-display text-4xl font-medium uppercase sm:text-6xl">
+      <h1 className="font-display text-3xl font-medium uppercase sm:text-5xl">
         Page not found
         <br />
         <span className="text-muted">Страница не найдена</span>

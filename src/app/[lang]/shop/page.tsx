@@ -22,7 +22,7 @@ export default async function Shop({ params, searchParams }: PageProps<"/[lang]/
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16">
       <div className="flex items-end justify-between gap-4">
-        <h1 className="text-4xl font-display font-medium uppercase sm:text-6xl">{dict.shop.title}</h1>
+        <h1 className="text-3xl font-display font-medium uppercase sm:text-5xl">{dict.shop.title}</h1>
         <span className="label text-muted tabular-nums">
           {products.length} {dict.shop.items}
         </span>
