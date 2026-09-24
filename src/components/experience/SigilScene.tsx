@@ -19,7 +19,8 @@ import { EYE_PATH, EYE_VIEWBOX } from "./eye-path";
 //   around the mark as it moves, with a faint photon ring at the Einstein radius;
 // - dark theme only: a soft halo with slow rays, bloom on the brightest glints, and a touch of
 //   radial chromatic aberration at the frame edges, as a real lens would show.
-// Light theme turns the same scene into a pale studio: silver against light, dust instead of stars.
+// Light theme turns the same scene into a pale studio: silver against light, dust instead of
+// stars, and now and then a dark shooting star crossing behind the sigil.
 // All commerce UI lives in HTML on top.
 
 export type Quality = "high" | "low";
@@ -430,6 +431,126 @@ function Surroundings({ theme, high }: { theme: Theme; high: boolean }) {
   );
 }
 
+const streakVertex = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+// A meteor streak: solid at the head (uv.x = 1), fading to nothing along the tail,
+// with soft edges across its width.
+const streakFragment = /* glsl */ `
+  uniform vec3 uColor;
+  uniform float uOpacity;
+  varying vec2 vUv;
+  void main() {
+    float tail = pow(vUv.x, 2.2);
+    float edge = 1.0 - abs(vUv.y * 2.0 - 1.0);
+    gl_FragColor = vec4(uColor, tail * edge * uOpacity);
+  }
+`;
+
+type Meteor = { active: boolean; t: number; duration: number; from: THREE.Vector3; dir: THREE.Vector3 };
+
+const METEORS = 3;
+const METEOR_LENGTH = 1.6;
+const METEOR_TRAVEL = 6.5;
+
+/**
+ * Light theme only: every few seconds a dark shooting star crosses the sky behind the sigil.
+ * A tiny fixed pool of streaks is reused, so nothing is allocated while the page runs.
+ */
+function ShootingStars({ theme }: { theme: Theme }) {
+  const meshes = useRef<(THREE.Mesh | null)[]>([]);
+  const meteors = useRef<Meteor[]>(
+    Array.from({ length: METEORS }, () => ({
+      active: false,
+      t: 0,
+      duration: 1,
+      from: new THREE.Vector3(),
+      dir: new THREE.Vector3(),
+    })),
+  );
+  const wait = useRef(3);
+  const presence = useRef(0);
+  const [materials] = useState(() =>
+    Array.from(
+      { length: METEORS },
+      () =>
+        new THREE.ShaderMaterial({
+          vertexShader: streakVertex,
+          fragmentShader: streakFragment,
+          uniforms: { uColor: { value: new THREE.Color("#0a0a0a") }, uOpacity: { value: 0 } },
+          transparent: true,
+          depthWrite: false,
+        }),
+    ),
+  );
+  useEffect(() => () => materials.forEach((m) => m.dispose()), [materials]);
+
+  useFrame((_, delta) => {
+    const dt = step(delta);
+    const light = theme === "light";
+    // Fades the whole effect in/out with the theme instead of cutting streaks mid-flight.
+    presence.current = THREE.MathUtils.damp(presence.current, light ? 1 : 0, 3, dt);
+
+    wait.current -= dt;
+    if (light && wait.current <= 0) {
+      wait.current = 3 + Math.random() * 7;
+      const free = meteors.current.find((m) => !m.active);
+      if (free) {
+        const side = Math.random() < 0.5 ? -1 : 1;
+        free.active = true;
+        free.t = 0;
+        free.duration = 1.1 + Math.random() * 0.7;
+        free.from.set(-side * (1 + Math.random() * 5), 3.2 + Math.random() * 1.4, -4 - Math.random() * 2);
+        free.dir.set(side * (0.75 + Math.random() * 0.25), -(0.45 + Math.random() * 0.3), 0).normalize();
+      }
+    }
+
+    meteors.current.forEach((m, i) => {
+      const mesh = meshes.current[i];
+      if (!mesh) return;
+      if (!m.active) {
+        mesh.visible = false;
+        return;
+      }
+      m.t += dt;
+      const p = m.t / m.duration;
+      if (p >= 1) {
+        m.active = false;
+        mesh.visible = false;
+        return;
+      }
+      // Head position; the streak's centre trails half a length behind it.
+      const travel = p * METEOR_TRAVEL;
+      mesh.visible = true;
+      mesh.position.copy(m.from).addScaledVector(m.dir, travel - METEOR_LENGTH / 2);
+      mesh.rotation.z = Math.atan2(m.dir.y, m.dir.x);
+      materials[i].uniforms.uOpacity.value = Math.sin(Math.PI * p) * 0.7 * presence.current;
+    });
+  });
+
+  return (
+    <>
+      {materials.map((material, i) => (
+        <mesh
+          key={i}
+          ref={(el) => {
+            meshes.current[i] = el;
+          }}
+          material={material}
+          visible={false}
+        >
+          <planeGeometry args={[METEOR_LENGTH, 0.014]} />
+        </mesh>
+      ))}
+    </>
+  );
+}
+
 function CameraRig({ calm }: { calm: boolean }) {
   const start = useRef(-1);
 
@@ -531,6 +652,7 @@ export default function SigilScene({
       {/* Far layer: many fine points behind the sigil (lensed). Near layer: fewer, larger, more parallax. */}
       <Stars count={high ? 700 : 240} seed={7} size={0.018} opacity={0.5} depth={0.35} drift={0.02} z={-3} theme={theme} />
       <Stars count={high ? 180 : 70} seed={31} size={0.03} opacity={0.75} depth={1.1} drift={0.035} z={2} theme={theme} />
+      <ShootingStars theme={theme} />
       <CameraRig calm={calm} />
 
       {high && theme === "dark" && (
