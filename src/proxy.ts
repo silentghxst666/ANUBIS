@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { defaultLocale, isLocale, localeCookie, locales, type Locale } from "@/i18n/config";
+import { SESSION_COOKIE, verifySessionValue } from "@/lib/auth";
 
 function preferredLocale(request: NextRequest): Locale {
   const saved = request.cookies.get(localeCookie)?.value;
@@ -14,8 +15,17 @@ function preferredLocale(request: NextRequest): Locale {
   return defaultLocale;
 }
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Admin lives outside the language tree. This is only the quick check that keeps
+  // strangers off the pages; every admin page and action verifies the session again.
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    if (pathname === "/admin/login") return NextResponse.next();
+    if (await verifySessionValue(request.cookies.get(SESSION_COOKIE)?.value)) return NextResponse.next();
+    return NextResponse.redirect(new URL("/admin/login", request.url));
+  }
+
   const current = locales.find((l) => pathname === `/${l}` || pathname.startsWith(`/${l}/`));
 
   if (current) {

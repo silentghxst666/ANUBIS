@@ -1,14 +1,20 @@
+import "server-only";
+import { asc, eq } from "drizzle-orm";
 import type { Locale } from "@/i18n/config";
+import { getDatabase, schema } from "@/db";
+import type { NewProductRow, ProductRow } from "@/db/schema";
+import { DEMO_PRODUCTS } from "./demo-products";
 
-// Stage 1: the catalog lives in code. Stage 2 moves it to the database + admin panel,
-// keeping the same Product shape so pages don't need to change.
-// NOTE: all products below are demo data (names, prices, stock) — replace with real ones.
+// The catalog the storefront reads. Products live in the database (managed at /admin);
+// without a database the built-in demo catalog is shown instead.
 
 export type Category = "outerwear" | "tops" | "bottoms" | "accessories";
 export type Color = "black" | "white";
-type Localized = Record<Locale, string>;
+export type Localized = Record<Locale, string>;
 
 export type Product = {
+  /** Database id; absent for the built-in demo catalog. */
+  id?: number;
   slug: string;
   sku: string;
   /** Collection label, e.g. "001 / ORIGINS". */
@@ -25,227 +31,113 @@ export type Product = {
   color: Color;
   /** Price in tenge (KZT), whole units. The $ price shown next to it is derived. */
   price: number;
-  /** Size -> units in stock. */
+  /** Size -> units in stock, in display order. */
   stock: Record<string, number>;
-  /** Paths under /public, e.g. "/products/shell-jacket-01/1.jpg". Empty = placeholder. */
+  /** Image URLs (Vercel Blob, or /uploads/... in local development). Empty = placeholder. */
   images: string[];
   isNew?: boolean;
+  /** Hidden from the storefront while false. */
+  published: boolean;
+  /** Lower comes first in the collection. */
+  position: number;
 };
-
-const ORIGINS = "001 / ORIGINS";
-
-const careTechnical: Localized = {
-  en: "Machine wash cold, 30 °C, gentle cycle. Do not tumble dry, bleach or iron the membrane. Reactivate DWR with low heat.",
-  ru: "Деликатная стирка при 30 °C. Не использовать отбеливатель, не сушить в барабане, не гладить мембрану. Пропитку DWR восстанавливать низкой температурой.",
-};
-
-const careKnit: Localized = {
-  en: "Wash inside out at 30 °C. Dry flat. Do not bleach. Iron at low temperature if needed.",
-  ru: "Стирать наизнанку при 30 °C. Сушить в расправленном виде. Не отбеливать. При необходимости гладить при низкой температуре.",
-};
-
-const products: Product[] = [
-  {
-    slug: "shell-jacket-01",
-    sku: "ANB-OW-001",
-    collection: ORIGINS,
-    name: { en: "Shell Jacket 01", ru: "Куртка Shell 01" },
-    description: {
-      en: "A three-layer hardshell cut for the city. Fully taped, laser-cut vents, hood that turns with your head.",
-      ru: "Трёхслойная мембранная куртка городского кроя. Полностью проклеенные швы, лазерная вентиляция, капюшон, поворачивающийся вместе с головой.",
-    },
-    material: { en: "3-layer nylon membrane", ru: "3-слойная нейлоновая мембрана" },
-    weight: "160 GSM",
-    features: [
-      { en: "Waterproof 20 000 mm", ru: "Водонепроницаемость 20 000 мм" },
-      { en: "Fully taped seams", ru: "Полностью проклеенные швы" },
-      { en: "Water-repellent zippers", ru: "Водоотталкивающие молнии" },
-    ],
-    care: careTechnical,
-    category: "outerwear",
-    color: "black",
-    price: 189000,
-    stock: { S: 3, M: 5, L: 4, XL: 2 },
-    images: [],
-    isNew: true,
-  },
-  {
-    slug: "storm-parka",
-    sku: "ANB-OW-002",
-    collection: ORIGINS,
-    name: { en: "Storm Parka", ru: "Парка Storm" },
-    description: {
-      en: "Insulated long parka for Almaty winters. Synthetic fill that stays warm when wet, two-way zip, storm collar.",
-      ru: "Утеплённая длинная парка для алматинской зимы. Синтетический утеплитель, греющий даже во влажном состоянии, двусторонняя молния, штормовой воротник.",
-    },
-    material: { en: "Windproof nylon, synthetic fill", ru: "Ветрозащитный нейлон, синтетический утеплитель" },
-    weight: "200 GSM fill",
-    features: [
-      { en: "Rated to −25 °C", ru: "Комфорт до −25 °C" },
-      { en: "Two-way zip", ru: "Двусторонняя молния" },
-      { en: "Storm collar", ru: "Штормовой воротник" },
-    ],
-    care: careTechnical,
-    category: "outerwear",
-    color: "black",
-    price: 249000,
-    stock: { S: 1, M: 3, L: 3, XL: 0 },
-    images: [],
-  },
-  {
-    slug: "insulated-vest",
-    sku: "ANB-OW-003",
-    collection: ORIGINS,
-    name: { en: "Insulated Vest", ru: "Утеплённый жилет" },
-    description: {
-      en: "A lightweight layer for transitional weather. Packs into its own chest pocket.",
-      ru: "Лёгкий слой для межсезонья. Складывается в собственный нагрудный карман.",
-    },
-    material: { en: "Ripstop nylon, DWR finish", ru: "Нейлон рипстоп с пропиткой DWR" },
-    features: [
-      { en: "Packable into chest pocket", ru: "Складывается в карман" },
-      { en: "Water-repellent", ru: "Водоотталкивающий" },
-    ],
-    care: careTechnical,
-    category: "outerwear",
-    color: "white",
-    price: 98000,
-    stock: { S: 2, M: 4, L: 4, XL: 1 },
-    images: [],
-  },
-  {
-    slug: "thermal-mid-layer",
-    sku: "ANB-TP-001",
-    collection: ORIGINS,
-    name: { en: "Thermal Mid-Layer", ru: "Термо мидлеер" },
-    description: {
-      en: "Grid fleece that traps heat and vents moisture. Flatlock seams sit flat under a shell.",
-      ru: "Флис с сеточной структурой: держит тепло и отводит влагу. Плоские швы не давят под курткой.",
-    },
-    material: { en: "Polyester grid fleece", ru: "Полиэстеровый сеточный флис" },
-    weight: "230 GSM",
-    features: [
-      { en: "Breathable grid structure", ru: "Дышащая сеточная структура" },
-      { en: "Flatlock seams", ru: "Плоские швы flatlock" },
-    ],
-    care: careKnit,
-    category: "tops",
-    color: "black",
-    price: 79000,
-    stock: { S: 4, M: 6, L: 5, XL: 3 },
-    images: [],
-    isNew: true,
-  },
-  {
-    slug: "tech-hoodie",
-    sku: "ANB-TP-002",
-    collection: ORIGINS,
-    name: { en: "Tech Hoodie", ru: "Худи Tech" },
-    description: {
-      en: "Heavyweight hoodie in a technical double-knit. Hidden zip pocket, bonded cuffs.",
-      ru: "Плотное худи из технического двойного трикотажа. Скрытый карман на молнии, бондированные манжеты.",
-    },
-    material: { en: "Cotton / polyester double-knit", ru: "Двойной трикотаж, хлопок / полиэстер" },
-    weight: "480 GSM",
-    features: [
-      { en: "Hidden zip pocket", ru: "Скрытый карман на молнии" },
-      { en: "Bonded cuffs", ru: "Бондированные манжеты" },
-    ],
-    care: careKnit,
-    category: "tops",
-    color: "white",
-    price: 59000,
-    stock: { S: 5, M: 8, L: 6, XL: 4 },
-    images: [],
-  },
-  {
-    slug: "base-tee",
-    sku: "ANB-TP-003",
-    collection: ORIGINS,
-    name: { en: "Base Tee", ru: "Футболка Base" },
-    description: {
-      en: "Merino-blend tee that regulates temperature and resists odour. The base of every layer.",
-      ru: "Футболка из смеси мериноса: регулирует температуру и не впитывает запах. Основа любого слоя.",
-    },
-    material: { en: "Merino wool / Tencel", ru: "Шерсть мериноса / тенсель" },
-    weight: "180 GSM",
-    features: [
-      { en: "Odour-resistant", ru: "Не впитывает запах" },
-      { en: "Temperature regulating", ru: "Терморегуляция" },
-    ],
-    care: careKnit,
-    category: "tops",
-    color: "black",
-    price: 29000,
-    stock: { S: 10, M: 12, L: 10, XL: 6 },
-    images: [],
-  },
-  {
-    slug: "utility-cargo-pant",
-    sku: "ANB-BT-001",
-    collection: ORIGINS,
-    name: { en: "Utility Cargo Pant", ru: "Карго Utility" },
-    description: {
-      en: "Articulated knees and a gusseted crotch in a 4-way stretch weave. Six pockets, none of them loud.",
-      ru: "Анатомические колени и ластовица, ткань 4-way stretch. Шесть карманов — ни одного броского.",
-    },
-    material: { en: "4-way stretch nylon, DWR", ru: "Нейлон 4-way stretch с пропиткой DWR" },
-    weight: "210 GSM",
-    features: [
-      { en: "Articulated knees", ru: "Анатомические колени" },
-      { en: "Magnetic cargo closures", ru: "Магнитные застёжки карманов" },
-    ],
-    care: careTechnical,
-    category: "bottoms",
-    color: "black",
-    price: 69000,
-    stock: { S: 3, M: 5, L: 5, XL: 2 },
-    images: [],
-    isNew: true,
-  },
-  {
-    slug: "sling-bag",
-    sku: "ANB-AC-001",
-    collection: ORIGINS,
-    name: { en: "Sling Bag", ru: "Сумка Sling" },
-    description: {
-      en: "Waterproof cross-body bag with a magnetic buckle and a padded device sleeve.",
-      ru: "Водонепроницаемая сумка через плечо с магнитной пряжкой и мягким отделением для устройств.",
-    },
-    material: { en: "TPU-laminated nylon", ru: "Нейлон с TPU-ламинацией" },
-    features: [
-      { en: "Welded waterproof seams", ru: "Сварные водонепроницаемые швы" },
-      { en: "Magnetic buckle", ru: "Магнитная пряжка" },
-    ],
-    care: {
-      en: "Wipe clean with a damp cloth. Do not machine wash.",
-      ru: "Протирать влажной тканью. Не стирать в машине.",
-    },
-    category: "accessories",
-    color: "white",
-    price: 45000,
-    stock: { OS: 8 },
-    images: [],
-  },
-];
 
 export const categories: Category[] = ["outerwear", "tops", "bottoms", "accessories"];
+export const colors: Color[] = ["black", "white"];
 
-export async function getProducts(category?: Category): Promise<Product[]> {
-  return category ? products.filter((p) => p.category === category) : products;
-}
-
-export async function getProduct(slug: string): Promise<Product | undefined> {
-  return products.find((p) => p.slug === slug);
-}
+/** At or below this many units a product is shown as "limited". */
+export const LOW_STOCK = 3;
 
 export function isCategory(value: string | undefined): value is Category {
   return categories.includes(value as Category);
 }
 
-export function totalStock(product: Product): number {
+export function isColor(value: string | undefined): value is Color {
+  return colors.includes(value as Color);
+}
+
+export function totalStock(product: Pick<Product, "stock">): number {
   return Object.values(product.stock).reduce((a, b) => a + b, 0);
 }
 
-/** At or below this many units a product is shown as "limited". */
-export const LOW_STOCK = 3;
+export function fromRow(row: ProductRow): Product {
+  return {
+    id: row.id,
+    slug: row.slug,
+    sku: row.sku,
+    collection: row.collection,
+    name: { en: row.nameEn, ru: row.nameRu },
+    description: { en: row.descriptionEn, ru: row.descriptionRu },
+    material: { en: row.materialEn, ru: row.materialRu },
+    weight: row.weight ?? undefined,
+    features: row.features,
+    care: { en: row.careEn, ru: row.careRu },
+    category: isCategory(row.category) ? row.category : "tops",
+    color: isColor(row.color) ? row.color : "black",
+    price: row.price,
+    stock: Object.fromEntries(row.stock.map((e) => [e.size, e.qty])),
+    images: row.images,
+    isNew: row.isNew,
+    published: row.published,
+    position: row.position,
+  };
+}
+
+export function toRow(p: Product): Omit<NewProductRow, "id"> {
+  return {
+    slug: p.slug,
+    sku: p.sku,
+    collection: p.collection,
+    nameEn: p.name.en,
+    nameRu: p.name.ru,
+    descriptionEn: p.description.en,
+    descriptionRu: p.description.ru,
+    materialEn: p.material.en,
+    materialRu: p.material.ru,
+    weight: p.weight ?? null,
+    features: p.features,
+    careEn: p.care.en,
+    careRu: p.care.ru,
+    category: p.category,
+    color: p.color,
+    price: p.price,
+    stock: Object.entries(p.stock).map(([size, qty]) => ({ size, qty })),
+    images: p.images,
+    isNew: p.isNew ?? false,
+    published: p.published,
+    position: p.position,
+  };
+}
+
+/** Database handle with the demo catalog seeded on first use; null without a database. */
+export async function catalogDb() {
+  const ready = await getDatabase();
+  if (!ready) return null;
+  if (ready.fresh) {
+    ready.fresh = false;
+    await ready.db.insert(schema.products).values(DEMO_PRODUCTS.map(toRow)).onConflictDoNothing();
+  }
+  return ready.db;
+}
+
+/** Every product, including unpublished ones (admin). */
+export async function getAllProducts(): Promise<Product[]> {
+  const db = await catalogDb();
+  if (!db) return DEMO_PRODUCTS;
+  const rows = await db.select().from(schema.products).orderBy(asc(schema.products.position), asc(schema.products.id));
+  return rows.map(fromRow);
+}
+
+/** Published products for the storefront, optionally one category. */
+export async function getProducts(category?: Category): Promise<Product[]> {
+  const all = (await getAllProducts()).filter((p) => p.published);
+  return category ? all.filter((p) => p.category === category) : all;
+}
+
+/** A published product by slug (storefront). */
+export async function getProduct(slug: string): Promise<Product | undefined> {
+  const db = await catalogDb();
+  if (!db) return DEMO_PRODUCTS.find((p) => p.slug === slug);
+  const [row] = await db.select().from(schema.products).where(eq(schema.products.slug, slug)).limit(1);
+  return row?.published ? fromRow(row) : undefined;
+}
