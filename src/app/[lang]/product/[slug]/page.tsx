@@ -84,7 +84,7 @@ export default async function ProductPage({ params }: PageProps<"/[lang]/product
           <span>{product.collection}</span>
         </nav>
 
-        <h1 className="mt-6 text-3xl font-extrabold uppercase leading-[1.05] tracking-tight sm:text-4xl">
+        <h1 className="mt-6 text-3xl font-display font-medium uppercase leading-[1.05] sm:text-4xl">
           {product.name[lang]}
         </h1>
         <p className="label mt-3 text-muted">{product.sku}</p>

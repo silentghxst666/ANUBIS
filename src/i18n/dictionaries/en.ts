@@ -1,7 +1,7 @@
 const en = {
   meta: {
     description:
-      "ANUBIS — designer technical apparel. Not made for everyone. Collection 001 / Origin. Almaty.",
+      "ANUBIS — designer technical apparel. Not made for everyone. Collection 001 / Origins. Almaty.",
   },
   nav: {
     shop: "Collection",
@@ -11,13 +11,13 @@ const en = {
     skip: "Skip to content",
   },
   home: {
-    kicker: "Collection 001 / Origin",
+    kicker: "Collection 001 / Origins",
     // Brand line stays in English in both languages.
     heroTitle: "Not made for everyone.",
     heroText: "Technical apparel, engineered in silence. Made for the few who notice the difference.",
     heroCta: "Enter the collection",
     scroll: "Scroll",
-    collectionTitle: "Origin",
+    collectionTitle: "Origins",
     viewAll: "View all objects",
     manifestoKicker: "Manifesto",
     manifestoTitle: "Designed in silence. Worn with intent.",

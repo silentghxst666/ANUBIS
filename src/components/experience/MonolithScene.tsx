@@ -20,13 +20,16 @@ const LIFT = 0.55;
 
 function Monolith({ still }: { still: boolean }) {
   const group = useRef<THREE.Group>(null);
+  const spin = useRef(0);
 
   useFrame((state, delta) => {
     const g = group.current;
     if (!g || still) return;
     const t = state.clock.elapsedTime;
-    // Slow breathing rotation plus a hint of the pointer; eased so nothing snaps.
-    const targetY = Math.sin(t * 0.15) * 0.35 + pointer.x * 0.25;
+    // A very slow continuous turn (one revolution ≈ 90 s), a gentle sway on top,
+    // and a hint of the pointer — all eased so nothing ever snaps.
+    spin.current += delta * 0.07;
+    const targetY = spin.current + Math.sin(t * 0.15) * 0.2 + pointer.x * 0.25;
     const targetX = pointer.y * 0.06;
     g.rotation.y = THREE.MathUtils.damp(g.rotation.y, targetY, 1.5, delta);
     g.rotation.x = THREE.MathUtils.damp(g.rotation.x, targetX, 1.5, delta);
@@ -85,6 +88,15 @@ function Dust({ count, still }: { count: number; still: boolean }) {
       />
     </points>
   );
+}
+
+/** A thin light strip that drifts slowly left and right, so a highlight glides over the monolith. */
+function SweepLight() {
+  const light = useRef<THREE.Mesh>(null);
+  useFrame((state) => {
+    if (light.current) light.current.position.x = Math.sin(state.clock.elapsedTime * 0.12) * 5;
+  });
+  return <Lightformer ref={light} form="rect" intensity={3} position={[0, 0, 4]} scale={[0.25, 10, 1]} />;
 }
 
 function CameraRig({ still }: { still: boolean }) {
@@ -159,10 +171,14 @@ export default function MonolithScene({
       <directionalLight position={[3, 1, 4]} intensity={0.25} />
 
       {/* Reflections come from these local light strips — no HDR download needed. */}
-      <Environment resolution={quality === "high" ? 256 : 64} frames={1}>
+      <Environment
+        resolution={quality === "high" ? 256 : 64}
+        frames={quality === "high" && !still ? Infinity : 1}
+      >
         <Lightformer form="rect" intensity={4.5} position={[3, 0, 3]} scale={[0.15, 8, 1]} />
         <Lightformer form="rect" intensity={2} position={[-3, 1, 2]} scale={[0.08, 6, 1]} />
         <Lightformer form="rect" intensity={0.8} position={[0, 4, -2]} scale={[6, 0.1, 1]} />
+        {quality === "high" && !still && <SweepLight />}
       </Environment>
 
       <Monolith still={still} />

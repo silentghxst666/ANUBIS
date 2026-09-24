@@ -17,6 +17,8 @@
 
   --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  /* Display face for the wordmark, headlines and section titles. Swap here to change it site-wide. */
+  --font-display: "Cormorant Variable", "Times New Roman", serif;
 
   --ease-weight: cubic-bezier(0.16, 0.84, 0.24, 1);
 }
@@ -39,6 +41,12 @@ body {
 :focus-visible {
   outline: 1px solid currentColor;
   outline-offset: 3px;
+}
+
+/* Headlines: high-contrast serif, set in capitals with a little air between letters. */
+@utility font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
 }
 
 /* Small uppercase technical label used across the site ("ANB-OW-001", section kickers). */
@@ -73,6 +81,61 @@ body {
 .intro {
   animation: rise 1.4s var(--ease-weight) both;
   animation-delay: var(--intro-delay, 0ms);
+}
+
+/* Headline words rise out of a mask, one after another. */
+@keyframes lift {
+  from {
+    transform: translateY(110%);
+  }
+}
+.word {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding-bottom: 0.06em;
+}
+.word > span {
+  display: inline-block;
+  animation: lift 1.8s var(--ease-weight) both;
+  animation-delay: var(--word-delay, 0ms);
+}
+
+/* Slow ticker between sections. */
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee {
+  animation: marquee 70s linear infinite;
+}
+
+/* A soft light that drifts across placeholder objects, echoing the hero. */
+@keyframes sheen {
+  0%, 20% { transform: translateX(-120%); }
+  80%, 100% { transform: translateX(120%); }
+}
+.sheen {
+  position: relative;
+  overflow: hidden;
+}
+.sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.18) 50%, transparent 70%);
+  animation: sheen 9s var(--ease-weight) infinite;
+  animation-delay: var(--sheen-delay, 0ms);
+}
+
+/* Footer wordmark settles from wide tracking into place. */
+.wordmark {
+  letter-spacing: 0.6em;
+  transition: letter-spacing 2.6s var(--ease-weight);
+}
+.is-visible .wordmark {
+  letter-spacing: 0.18em;
 }
 
 /* Film grain: a tiny tiled noise texture, jittered in steps so it reads as film, not blur. */
@@ -114,7 +177,14 @@ html.has-cursor textarea {
     animation: none;
     transition: none;
   }
-  .grain::after {
+  .grain::after,
+  .word > span,
+  .sheen::after,
+  .marquee {
     animation: none;
+  }
+  .wordmark {
+    letter-spacing: 0.18em;
+    transition: none;
   }
 }

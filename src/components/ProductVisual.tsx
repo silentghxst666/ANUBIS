@@ -35,7 +35,7 @@ export default function ProductVisual({
           {/* Small monolith: echoes the hero object until photography exists. */}
           <div
             aria-hidden
-            className={`mx-auto h-[42%] w-[16%] ${dark ? "bg-gradient-to-r from-[#1a1a1a] via-[#262626] to-[#141414] shadow-[0_0_60px_rgba(255,255,255,0.04)]" : "bg-gradient-to-r from-[#d6d6d6] via-[#f7f7f7] to-[#cfcfcf] shadow-[0_20px_50px_rgba(0,0,0,0.08)]"}`}
+            className={`sheen mx-auto h-[42%] w-[16%] ${dark ? "bg-gradient-to-r from-[#1a1a1a] via-[#262626] to-[#141414] shadow-[0_0_60px_rgba(255,255,255,0.04)]" : "bg-gradient-to-r from-[#d6d6d6] via-[#f7f7f7] to-[#cfcfcf] shadow-[0_20px_50px_rgba(0,0,0,0.08)]"}`}
           />
           <span className="label opacity-50">{product.collection}</span>
         </div>

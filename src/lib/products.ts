@@ -11,7 +11,7 @@ type Localized = Record<Locale, string>;
 export type Product = {
   slug: string;
   sku: string;
-  /** Collection label, e.g. "001 / ORIGIN". */
+  /** Collection label, e.g. "001 / ORIGINS". */
   collection: string;
   name: Localized;
   description: Localized;
@@ -32,7 +32,7 @@ export type Product = {
   isNew?: boolean;
 };
 
-const ORIGIN = "001 / ORIGIN";
+const ORIGINS = "001 / ORIGINS";
 
 const careTechnical: Localized = {
   en: "Machine wash cold, 30 °C, gentle cycle. Do not tumble dry, bleach or iron the membrane. Reactivate DWR with low heat.",
@@ -48,7 +48,7 @@ const products: Product[] = [
   {
     slug: "shell-jacket-01",
     sku: "ANB-OW-001",
-    collection: ORIGIN,
+    collection: ORIGINS,
     name: { en: "Shell Jacket 01", ru: "Куртка Shell 01" },
     description: {
       en: "A three-layer hardshell cut for the city. Fully taped, laser-cut vents, hood that turns with your head.",
@@ -72,7 +72,7 @@ const products: Product[] = [
   {
     slug: "storm-parka",
     sku: "ANB-OW-002",
-    collection: ORIGIN,
+    collection: ORIGINS,
     name: { en: "Storm Parka", ru: "Парка Storm" },
     description: {
       en: "Insulated long parka for Almaty winters. Synthetic fill that stays warm when wet, two-way zip, storm collar.",
@@ -95,7 +95,7 @@ const products: Product[] = [
   {
     slug: "insulated-vest",
     sku: "ANB-OW-003",
-    collection: ORIGIN,
+    collection: ORIGINS,
     name: { en: "Insulated Vest", ru: "Утеплённый жилет" },
     description: {
       en: "A lightweight layer for transitional weather. Packs into its own chest pocket.",
@@ -116,7 +116,7 @@ const products: Product[] = [
   {
     slug: "thermal-mid-layer",
     sku: "ANB-TP-001",
-    collection: ORIGIN,
+    collection: ORIGINS,
     name: { en: "Thermal Mid-Layer", ru: "Термо мидлеер" },
     description: {
       en: "Grid fleece that traps heat and vents moisture. Flatlock seams sit flat under a shell.",
@@ -139,7 +139,7 @@ const products: Product[] = [
   {
     slug: "tech-hoodie",
     sku: "ANB-TP-002",
-    collection: ORIGIN,
+    collection: ORIGINS,
     name: { en: "Tech Hoodie", ru: "Худи Tech" },
     description: {
       en: "Heavyweight hoodie in a technical double-knit. Hidden zip pocket, bonded cuffs.",
@@ -161,7 +161,7 @@ const products: Product[] = [
   {
     slug: "base-tee",
     sku: "ANB-TP-003",
-    collection: ORIGIN,
+    collection: ORIGINS,
     name: { en: "Base Tee", ru: "Футболка Base" },
     description: {
       en: "Merino-blend tee that regulates temperature and resists odour. The base of every layer.",
@@ -183,7 +183,7 @@ const products: Product[] = [
   {
     slug: "utility-cargo-pant",
     sku: "ANB-BT-001",
-    collection: ORIGIN,
+    collection: ORIGINS,
     name: { en: "Utility Cargo Pant", ru: "Карго Utility" },
     description: {
       en: "Articulated knees and a gusseted crotch in a 4-way stretch weave. Six pockets, none of them loud.",
@@ -206,7 +206,7 @@ const products: Product[] = [
   {
     slug: "sling-bag",
     sku: "ANB-AC-001",
-    collection: ORIGIN,
+    collection: ORIGINS,
     name: { en: "Sling Bag", ru: "Сумка Sling" },
     description: {
       en: "Waterproof cross-body bag with a magnetic buckle and a padded device sleeve.",

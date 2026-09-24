@@ -7,6 +7,7 @@ import Cursor from "@/components/Cursor";
 // Self-hosted fonts (Latin + Cyrillic), bundled from npm — no runtime call to Google Fonts.
 import "@fontsource-variable/manrope";
 import "@fontsource-variable/jetbrains-mono";
+import "@fontsource-variable/cormorant";
 import "../globals.css";
 
 export function generateStaticParams() {

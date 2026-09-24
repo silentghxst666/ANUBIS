@@ -1,12 +1,19 @@
 import type { Dictionary } from "@/i18n/dictionaries/en";
-import Logo from "./Logo";
+import Reveal from "./Reveal";
 
 export default function Footer({ dict }: { dict: Dictionary }) {
   return (
-    <footer className="bg-ink text-white">
-      <div className="mx-auto flex max-w-7xl flex-col gap-10 px-4 pb-10 pt-20 sm:px-6">
-        <Logo className="text-[clamp(2.5rem,12vw,9rem)] leading-none tracking-[0.2em]" />
-        <div className="label flex flex-col gap-2 text-muted-dark sm:flex-row sm:justify-between">
+    <footer className="overflow-hidden bg-ink text-white">
+      <div className="mx-auto flex max-w-7xl flex-col gap-12 px-4 pb-10 pt-24 sm:px-6">
+        <Reveal>
+          <p
+            aria-label="ANUBIS"
+            className="wordmark font-display pl-[0.18em] text-center text-[clamp(3rem,15vw,12rem)] font-light leading-none"
+          >
+            ANUBIS
+          </p>
+        </Reveal>
+        <div className="label flex flex-col gap-2 border-t border-line-dark pt-6 text-muted-dark sm:flex-row sm:justify-between">
           <span>{dict.footer.tagline}</span>
           <span>{dict.footer.city}</span>
           <span>

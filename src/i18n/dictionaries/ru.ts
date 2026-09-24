@@ -3,7 +3,7 @@ import type { Dictionary } from "./en";
 const ru: Dictionary = {
   meta: {
     description:
-      "ANUBIS — дизайнерская технологичная одежда. Not made for everyone. Коллекция 001 / Origin. Алматы.",
+      "ANUBIS — дизайнерская технологичная одежда. Not made for everyone. Коллекция 001 / Origins. Алматы.",
   },
   nav: {
     shop: "Коллекция",
@@ -13,12 +13,12 @@ const ru: Dictionary = {
     skip: "Перейти к содержимому",
   },
   home: {
-    kicker: "Коллекция 001 / Origin",
+    kicker: "Коллекция 001 / Origins",
     heroTitle: "Not made for everyone.",
     heroText: "Технологичная одежда, созданная в тишине. Для тех немногих, кто замечает разницу.",
     heroCta: "Смотреть коллекцию",
     scroll: "Вниз",
-    collectionTitle: "Origin",
+    collectionTitle: "Origins",
     viewAll: "Все объекты",
     manifestoKicker: "Манифест",
     manifestoTitle: "Создано в тишине. Носится с намерением.",
