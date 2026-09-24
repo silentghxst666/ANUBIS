@@ -1,33 +1,52 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { Environment, Lightformer, PerformanceMonitor, RoundedBox } from "@react-three/drei";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Environment, Lightformer, PerformanceMonitor } from "@react-three/drei";
+import { Bloom, EffectComposer, ToneMapping } from "@react-three/postprocessing";
+import { ToneMappingMode } from "postprocessing";
+import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
 import * as THREE from "three";
+import { EYE_PATH, EYE_VIEWBOX } from "./eye-path";
 
-// The hero's 3D layer: a black monolith in fog, lit by thin white light strips; one strip
-// follows the cursor. Kept deliberately small — one mesh, two point clouds,
-// no post-processing — so it loads fast and stays smooth on phones.
+// The hero's 3D layer: the ANUBIS Eye extruded in polished silver, floating in dark space.
+// Light "from space" = a soft halo and slow rays behind the sigil, a light strip gliding over
+// the metal, and (on capable devices) a gentle bloom on the brightest highlights.
+// All commerce UI lives in HTML on top.
 
 export type Quality = "high" | "low";
 
 const BG = "#050505";
 
-/** Raises the monolith so the bottom-aligned headline does not cover it. */
-const LIFT = 0.55;
+/** Raises the sigil so the bottom-aligned headline does not cover it. */
+const LIFT = 0.7;
+/** Rendered width of the sigil in world units. */
+const SIGIL_WIDTH = 2.3;
 
 /** Raw pointer in -1..1, written by the DOM listener. `at` = time of the last move (ms). */
 const pointer = { x: 0, y: 0, at: -Infinity };
-
 /** After this long without cursor movement (and always on touch screens) the scene drifts on its own. */
 const IDLE_MS = 2500;
 /** Eased pointer, updated once per frame; everything in the scene reads this one. */
 const eased = { x: 0, y: 0 };
 
 /**
+ * Where the sigil sits for the current screen shape. Wide screens: to the right of the
+ * headline, magazine-cover style. Narrow/portrait screens: centred above it, smaller.
+ */
+function useAnchor() {
+  const aspect = useThree((state) => state.size.width / state.size.height);
+  const wide = THREE.MathUtils.clamp((aspect - 1.15) / 0.6, 0, 1);
+  return {
+    x: wide * 1.75,
+    y: LIFT + wide * 0.05,
+    scale: THREE.MathUtils.clamp(aspect / 1.7, 0.55, 1),
+  };
+}
+
+/**
  * Longest step a frame may take. When rendering resumes after the hero was off-screen,
- * the first delta can be seconds long; without this cap the camera and monolith would
- * jump to their targets in a single frame.
+ * the first delta can be seconds long; without this cap everything would jump.
  */
 const step = (delta: number) => Math.min(delta, 1 / 30);
 
@@ -46,37 +65,115 @@ function PointerEase() {
   return null;
 }
 
-function Monolith({ calm }: { calm: boolean }) {
+function useSigilGeometry() {
+  return useMemo(() => {
+    const [x, y, w, h] = EYE_VIEWBOX;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x} ${y} ${w} ${h}"><path fill-rule="evenodd" d="${EYE_PATH}"/></svg>`;
+    const shapes = new SVGLoader().parse(svg).paths.flatMap((p) => SVGLoader.createShapes(p));
+    const geometry = new THREE.ExtrudeGeometry(shapes, {
+      depth: 34,
+      bevelEnabled: true,
+      bevelThickness: 7,
+      bevelSize: 2.5,
+      bevelSegments: 4,
+      curveSegments: 6,
+    });
+    geometry.center();
+    // SVG is y-down; turning it over puts it upright without mirroring.
+    geometry.rotateX(Math.PI);
+    const s = SIGIL_WIDTH / w;
+    geometry.scale(s, s, s);
+    return geometry;
+  }, []);
+}
+
+function Sigil({ calm }: { calm: boolean }) {
   const group = useRef<THREE.Group>(null);
-  const spin = useRef(0);
+  const geometry = useSigilGeometry();
+  const anchor = useAnchor();
+  useEffect(() => () => geometry.dispose(), [geometry]);
 
   useFrame((state, delta) => {
     const g = group.current;
     if (!g) return;
     const dt = step(delta);
     const t = state.clock.elapsedTime;
-    // Continuous slow turn (one revolution ≈ 50 s, ≈ 80 s in calm mode) plus a turn
-    // toward the cursor, both eased so nothing snaps.
-    spin.current += dt * (calm ? 0.08 : 0.125);
-    const targetY = spin.current + eased.x * (calm ? 0.35 : 0.7);
-    const targetX = -eased.y * (calm ? 0.06 : 0.14);
+    // A slow sway so the metal keeps catching new light, plus a turn toward the cursor.
+    // It never turns far enough to show the mark mirrored from behind.
+    const sway = calm ? 0.25 : 0.45;
+    const targetY = Math.sin(t * 0.22) * sway + eased.x * (calm ? 0.25 : 0.5);
+    const targetX = Math.sin(t * 0.17) * 0.1 - eased.y * (calm ? 0.1 : 0.25);
     g.rotation.y = THREE.MathUtils.damp(g.rotation.y, targetY, 2, dt);
     g.rotation.x = THREE.MathUtils.damp(g.rotation.x, targetX, 2, dt);
-    g.position.y = LIFT + Math.sin(t * 0.4) * 0.06;
+    g.position.y = anchor.y + Math.sin(t * 0.4) * 0.06;
   });
 
   return (
-    <group ref={group} position={[0, LIFT, 0]}>
-      <RoundedBox args={[1.05, 3.1, 0.3]} radius={0.015} smoothness={2}>
+    <group ref={group} position={[anchor.x, anchor.y, 0]} scale={anchor.scale}>
+      <mesh geometry={geometry}>
         <meshPhysicalMaterial
-          color="#0a0a0a"
-          metalness={0.85}
-          roughness={0.22}
-          clearcoat={1}
-          clearcoatRoughness={0.15}
+          color="#c9ccd1"
+          metalness={1}
+          roughness={0.14}
+          clearcoat={0.5}
+          clearcoatRoughness={0.08}
+          envMapIntensity={1}
         />
-      </RoundedBox>
+      </mesh>
     </group>
+  );
+}
+
+const glowVertex = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+// Soft halo plus thin rays radiating from behind the sigil; additive, so it only adds light.
+const glowFragment = /* glsl */ `
+  uniform float uTime;
+  uniform float uRays;
+  varying vec2 vUv;
+  void main() {
+    vec2 p = vUv * 2.0 - 1.0;
+    float r = length(p);
+    float a = atan(p.y, p.x);
+    float halo = exp(-r * r * 9.0) * 0.22 + exp(-r * 3.2) * 0.05;
+    float pulse = 0.85 + 0.15 * sin(uTime * 0.6);
+    float rays = pow(abs(sin(a * 6.0 + uTime * 0.04)), 40.0) * 0.6
+               + pow(abs(sin(a * 11.0 - uTime * 0.03 + 1.3)), 60.0) * 0.35;
+    rays *= smoothstep(1.0, 0.15, r) * smoothstep(0.0, 0.18, r) * uRays;
+    float light = (halo * pulse + rays * 0.45);
+    gl_FragColor = vec4(vec3(0.93, 0.95, 1.0) * light, light);
+  }
+`;
+
+function SpaceGlow({ rays }: { rays: boolean }) {
+  const material = useRef<THREE.ShaderMaterial>(null);
+  const uniforms = useMemo(() => ({ uTime: { value: 0 }, uRays: { value: rays ? 1 : 0 } }), [rays]);
+  const anchor = useAnchor();
+
+  useFrame((state) => {
+    if (material.current) material.current.uniforms.uTime.value = state.clock.elapsedTime;
+  });
+
+  return (
+    <mesh position={[anchor.x, anchor.y, -1.4]} scale={anchor.scale}>
+      <planeGeometry args={[11, 11]} />
+      <shaderMaterial
+        ref={material}
+        vertexShader={glowVertex}
+        fragmentShader={glowFragment}
+        uniforms={uniforms}
+        transparent
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+        fog={false}
+      />
+    </mesh>
   );
 }
 
@@ -94,8 +191,8 @@ function makeField(count: number, seed: number, spread: [number, number, number]
 }
 
 /**
- * One layer of floating dust. It drifts on its own (slow rotation + rising) and shifts
- * against the cursor; nearer layers shift more, which reads as depth.
+ * One layer of stars/dust. It drifts on its own and shifts against the cursor;
+ * nearer layers shift more, which reads as depth.
  */
 function Dust({
   count,
@@ -146,7 +243,7 @@ function Dust({
   );
 }
 
-/** A thin light strip drifting slowly, pulled toward the cursor, so a highlight glides over the faces. */
+/** A light strip drifting slowly, pulled toward the cursor, so a bright glint glides across the silver. */
 function SweepLight() {
   const light = useRef<THREE.Mesh>(null);
   useFrame((state) => {
@@ -154,7 +251,7 @@ function SweepLight() {
       light.current.position.x = Math.sin(state.clock.elapsedTime * 0.15) * 3 + eased.x * 3;
     }
   });
-  return <Lightformer ref={light} form="rect" intensity={3} position={[0, 0, 4]} scale={[0.25, 10, 1]} />;
+  return <Lightformer ref={light} form="rect" intensity={6} position={[0, 0, 4]} scale={[0.35, 10, 1]} />;
 }
 
 function CameraRig({ calm }: { calm: boolean }) {
@@ -164,7 +261,7 @@ function CameraRig({ calm }: { calm: boolean }) {
     const { camera } = state;
     const dt = step(delta);
 
-    // Arrival: the camera drifts in from the fog over the first seconds (skipped in calm mode).
+    // Arrival: the camera drifts in from the dark over the first seconds (skipped in calm mode).
     if (start.current < 0) start.current = state.clock.elapsedTime;
     const arrive = calm ? 1 : Math.min((state.clock.elapsedTime - start.current) / 3.2, 1);
     const inOut = 1 - Math.pow(1 - arrive, 3);
@@ -185,7 +282,7 @@ function CameraRig({ calm }: { calm: boolean }) {
   return null;
 }
 
-export default function MonolithScene({
+export default function SigilScene({
   quality,
   calm,
   active,
@@ -199,6 +296,7 @@ export default function MonolithScene({
   onReady: () => void;
 }) {
   const [dpr, setDpr] = useState(quality === "high" ? 1.5 : 1);
+  const [bloom, setBloom] = useState(quality === "high");
   const high = quality === "high";
 
   useEffect(() => {
@@ -233,34 +331,46 @@ export default function MonolithScene({
       }}
       aria-hidden
     >
-      <PerformanceMonitor onDecline={() => setDpr(1)} />
+      {/* If the device struggles: first drop resolution, then the bloom pass. */}
+      <PerformanceMonitor
+        onDecline={() => {
+          setDpr(1);
+          setBloom(false);
+        }}
+      />
       <color attach="background" args={[BG]} />
-      <fog attach="fog" args={[BG, 6, 15]} />
+      <fog attach="fog" args={[BG, 7, 16]} />
 
-      <ambientLight intensity={0.04} />
-      {/* Cold rim light from behind-left, soft key from the right. */}
-      <directionalLight position={[-4, 3, -3]} intensity={1.4} color="#dfe6ee" />
-      <directionalLight position={[3, 1, 4]} intensity={0.25} />
+      <ambientLight intensity={0.05} />
+      <directionalLight position={[-4, 3, -3]} intensity={1.2} color="#dfe6ee" />
+      <directionalLight position={[3, 2, 4]} intensity={0.35} />
 
-      {/* Reflections come from these local light strips — no HDR download needed. */}
+      {/* Reflections for the silver come from these local light panels — no HDR download. */}
       <Environment resolution={high ? 256 : 64} frames={high ? Infinity : 1}>
-        <Lightformer form="rect" intensity={4.5} position={[3, 0, 3]} scale={[0.15, 8, 1]} />
-        <Lightformer form="rect" intensity={2} position={[-3, 1, 2]} scale={[0.08, 6, 1]} />
-        <Lightformer form="rect" intensity={0.8} position={[0, 4, -2]} scale={[6, 0.1, 1]} />
-        {/* Broad, dim panel in front: the face always reads as a soft grey gradient. */}
-        <Lightformer form="rect" intensity={0.35} position={[0, 2, 7]} scale={[12, 8, 1]} />
-        {/* Side strips: the edges light up as the slab turns. */}
+        {/* Dim wide panel: silver stays readable; bright strips give it contrast. */}
+        <Lightformer form="rect" intensity={0.5} position={[0, 2, 7]} scale={[12, 8, 1]} />
+        <Lightformer form="rect" intensity={4} position={[3, 0, 3]} scale={[0.2, 8, 1]} />
+        <Lightformer form="rect" intensity={2} position={[-3, 1, 2]} scale={[0.1, 6, 1]} />
+        <Lightformer form="rect" intensity={1.2} position={[0, 5, -1]} scale={[8, 0.2, 1]} />
         <Lightformer form="rect" intensity={2.5} position={[7, 0, 0]} scale={[0.3, 10, 1]} />
         <Lightformer form="rect" intensity={1.5} position={[-7, 0, 0]} scale={[0.3, 10, 1]} />
         {high && <SweepLight />}
       </Environment>
 
       <PointerEase />
-      <Monolith calm={calm} />
+      <SpaceGlow rays={!calm} />
+      <Sigil calm={calm} />
       {/* Far layer: many fine points, barely moving. Near layer: fewer, larger, more parallax. */}
-      <Dust count={high ? 520 : 180} seed={7} size={0.016} opacity={0.45} depth={0.35} drift={0.02} z={-1.5} />
+      <Dust count={high ? 520 : 180} seed={7} size={0.016} opacity={0.45} depth={0.35} drift={0.02} z={-2} />
       <Dust count={high ? 200 : 80} seed={31} size={0.028} opacity={0.7} depth={1.1} drift={0.035} z={2} />
       <CameraRig calm={calm} />
+
+      {bloom && (
+        <EffectComposer multisampling={0}>
+          <Bloom mipmapBlur intensity={0.6} luminanceThreshold={0.82} luminanceSmoothing={0.15} />
+          <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+        </EffectComposer>
+      )}
     </Canvas>
   );
 }

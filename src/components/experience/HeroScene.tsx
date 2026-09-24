@@ -2,10 +2,10 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import type { Quality } from "./MonolithScene";
+import type { Quality } from "./SigilScene";
 
 // three.js is only downloaded after the page is interactive and never on the server.
-const MonolithScene = dynamic(() => import("./MonolithScene"), { ssr: false });
+const SigilScene = dynamic(() => import("./SigilScene"), { ssr: false });
 
 type Setup = { quality: Quality; calm: boolean } | null;
 
@@ -24,7 +24,7 @@ function detectSetup(): Setup {
   };
 }
 
-/** Full-bleed 3D backdrop for the hero, with a CSS monolith shown until (or instead of) WebGL. */
+/** Full-bleed 3D backdrop for the hero, with a flat sigil shown until (or instead of) WebGL. */
 export default function HeroScene() {
   const wrap = useRef<HTMLDivElement>(null);
   const [setup, setSetup] = useState<Setup>(null);
@@ -51,18 +51,21 @@ export default function HeroScene() {
 
   return (
     <div ref={wrap} className="absolute inset-0" aria-hidden>
-      {/* Static fallback: a soft vertical slab of light, same composition as the 3D frame. */}
+      {/* Static fallback: the flat sigil in a soft halo, same composition as the 3D frame. */}
       <div
         className={`absolute inset-0 flex items-center justify-center transition-opacity duration-[1600ms] ${ready ? "opacity-0" : "opacity-100"}`}
       >
-        <div className="h-[46%] w-[min(16vh,22vw)] bg-gradient-to-r from-[#111] via-[#1c1c1c] to-[#0b0b0b] shadow-[0_0_120px_rgba(242,242,242,0.05)]" />
+        <div className="-translate-y-[9%] rounded-full bg-[radial-gradient(circle,rgba(242,242,242,0.08),transparent_65%)] p-[6vh]">
+          {/* eslint-disable-next-line @next/next/no-img-element -- decorative inline SVG, no optimisation needed */}
+          <img src="/brand/anubis-eye.svg" alt="" className="h-[34vh] w-auto opacity-60 invert" />
+        </div>
       </div>
 
       {setup && (
         <div
           className={`absolute inset-0 transition-opacity duration-[1600ms] ${ready ? "opacity-100" : "opacity-0"}`}
         >
-          <MonolithScene
+          <SigilScene
             quality={setup.quality}
             calm={setup.calm}
             active={active}

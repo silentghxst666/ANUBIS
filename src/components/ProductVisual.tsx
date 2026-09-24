@@ -1,5 +1,17 @@
 import Image from "next/image";
+import type { CSSProperties } from "react";
 import type { Product } from "@/lib/products";
+
+const SIGIL_MASK: CSSProperties = {
+  maskImage: "url(/brand/anubis-eye.svg)",
+  WebkitMaskImage: "url(/brand/anubis-eye.svg)",
+  maskSize: "contain",
+  WebkitMaskSize: "contain",
+  maskRepeat: "no-repeat",
+  WebkitMaskRepeat: "no-repeat",
+  maskPosition: "center",
+  WebkitMaskPosition: "center",
+};
 
 /** Product photo, or a monochrome "object" placeholder until real photos are uploaded. */
 export default function ProductVisual({
@@ -32,10 +44,12 @@ export default function ProductVisual({
       ) : (
         <div className="absolute inset-0 flex flex-col justify-between p-4">
           <span className="label opacity-50">{product.sku}</span>
-          {/* Small monolith: echoes the hero object until photography exists. */}
+          {/* The ANUBIS sigil, faint, until photography exists. Masked to the mark's shape
+              so the drifting sheen lights only the sigil, not a box around it. */}
           <div
             aria-hidden
-            className={`sheen mx-auto h-[42%] w-[16%] ${dark ? "bg-gradient-to-r from-[#1a1a1a] via-[#262626] to-[#141414] shadow-[0_0_60px_rgba(255,255,255,0.04)]" : "bg-gradient-to-r from-[#d6d6d6] via-[#f7f7f7] to-[#cfcfcf] shadow-[0_20px_50px_rgba(0,0,0,0.08)]"}`}
+            className={`sheen mx-auto aspect-square w-[46%] ${dark ? "bg-white/20" : "bg-black/15"}`}
+            style={SIGIL_MASK}
           />
           <span className="label opacity-50">{product.collection}</span>
         </div>
