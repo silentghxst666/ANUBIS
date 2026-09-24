@@ -3,6 +3,7 @@ import { locales } from "@/i18n/config";
 import { assertLocale, getDictionary } from "@/i18n/get-dictionary";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Cursor from "@/components/Cursor";
 // Self-hosted fonts (Latin + Cyrillic), bundled from npm — no runtime call to Google Fonts.
 import "@fontsource-variable/manrope";
 import "@fontsource-variable/jetbrains-mono";
@@ -30,9 +31,18 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
   return (
     <html lang={lang} className="antialiased">
       <body className="flex min-h-dvh flex-col font-sans">
+        <a
+          href="#content"
+          className="label sr-only z-50 bg-white px-4 py-3 text-ink focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+        >
+          {dict.nav.skip}
+        </a>
         <Header lang={lang} dict={dict} />
-        <main className="flex-1">{children}</main>
+        <main id="content" className="flex-1">
+          {children}
+        </main>
         <Footer dict={dict} />
+        <Cursor viewLabel={dict.product.view} />
       </body>
     </html>
   );

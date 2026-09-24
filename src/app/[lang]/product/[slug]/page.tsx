@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { locales } from "@/i18n/config";
 import { assertLocale, getDictionary } from "@/i18n/get-dictionary";
 import { formatPrice } from "@/lib/format";
-import { getProduct, getProducts } from "@/lib/products";
+import { getProduct, getProducts, LOW_STOCK, totalStock } from "@/lib/products";
 import ProductVisual from "@/components/ProductVisual";
 import AddToCart from "@/components/AddToCart";
 
@@ -28,59 +29,104 @@ export default async function ProductPage({ params }: PageProps<"/[lang]/product
   const product = await getProduct(slug);
   if (!product) notFound();
   const dict = await getDictionary(lang);
+  const t = dict.product;
+
   const views = Math.max(product.images.length, 1);
+  const stock = totalStock(product);
+  const status =
+    stock === 0 ? t.soldOut : stock <= LOW_STOCK ? t.limited.replace("{n}", String(stock)) : t.inStock;
+
+  const sections = [
+    {
+      title: t.material,
+      body: (
+        <p>
+          {product.material[lang]}
+          {product.weight && <span className="label ml-2 text-ink">{product.weight}</span>}
+        </p>
+      ),
+    },
+    {
+      title: t.features,
+      body: (
+        <ul className="space-y-1">
+          {product.features.map((f) => (
+            <li key={f.en}>— {f[lang]}</li>
+          ))}
+        </ul>
+      ),
+    },
+    { title: t.care, body: <p>{product.care[lang]}</p> },
+    { title: t.delivery, body: <p>{t.deliveryText}</p> },
+  ];
 
   return (
-    <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_420px] lg:gap-14 lg:py-12">
+    <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_440px] lg:gap-16 lg:py-12">
       <div className="grid gap-2 sm:grid-cols-2">
         {Array.from({ length: views }, (_, i) => (
-          <ProductVisual
-            key={i}
-            product={product}
-            index={i}
-            priority={i === 0}
-            sizes="(min-width: 1024px) 30vw, (min-width: 640px) 50vw, 100vw"
-          />
+          <div key={i} className={views === 1 ? "sm:col-span-2" : undefined}>
+            <ProductVisual
+              product={product}
+              index={i}
+              priority={i === 0}
+              sizes="(min-width: 1024px) 45vw, 100vw"
+            />
+          </div>
         ))}
       </div>
 
       <div className="lg:sticky lg:top-24 lg:self-start">
-        <p className="label text-muted">{product.sku}</p>
-        <h1 className="mt-3 text-3xl font-extrabold tracking-tight">{product.name[lang]}</h1>
-        <p className="mt-2 text-lg tabular-nums">{formatPrice(product.price)}</p>
+        <nav className="label flex gap-2 text-muted" aria-label="Breadcrumb">
+          <Link href={`/${lang}/shop`} className="hover:text-ink">
+            {dict.shop.title}
+          </Link>
+          <span>/</span>
+          <span>{product.collection}</span>
+        </nav>
 
-        <p className="label mt-6 text-muted">
-          {dict.product.color}: <span className="text-ink">{dict.product.colors[product.color]}</span>
-        </p>
+        <h1 className="mt-6 text-3xl font-extrabold uppercase leading-[1.05] tracking-tight sm:text-4xl">
+          {product.name[lang]}
+        </h1>
+        <p className="label mt-3 text-muted">{product.sku}</p>
+
+        <p className="mt-6 text-xl tabular-nums">{formatPrice(product.price)}</p>
+        <p className="label mt-1 text-muted">{t.priceNote}</p>
+
+        <div className="label mt-6 flex flex-wrap gap-x-6 gap-y-2">
+          <span className="text-muted">
+            {t.color}: <span className="text-ink">{t.colors[product.color]}</span>
+          </span>
+          <span className={stock <= LOW_STOCK ? "text-ink" : "text-muted"}>● {status}</span>
+        </div>
 
         <AddToCart
           slug={product.slug}
           stock={product.stock}
+          cartHref={`/${lang}/cart`}
           labels={{
-            size: dict.product.size,
-            selectSize: dict.product.selectSize,
-            soldOut: dict.product.soldOut,
-            addToCart: dict.product.addToCart,
-            added: dict.product.added,
+            size: t.size,
+            selectSize: t.selectSize,
+            soldOut: t.soldOut,
+            addToCart: t.addToCart,
+            added: t.added,
+            viewCart: t.viewCart,
           }}
         />
-        <p className="label mt-3 text-muted">{dict.product.localDelivery}</p>
 
-        <div className="mt-10 border-t border-line pt-6">
-          <h2 className="label">{dict.product.details}</h2>
-          <p className="mt-3 leading-relaxed text-muted">{product.description[lang]}</p>
-        </div>
+        <p className="mt-8 leading-relaxed text-muted">{product.description[lang]}</p>
 
-        <div className="mt-8 border-t border-line pt-6">
-          <h2 className="label">{dict.product.features}</h2>
-          <ul className="mt-3 divide-y divide-line">
-            {product.features.map((f) => (
-              <li key={f.en} className="flex gap-3 py-2 text-sm">
-                <span className="text-muted">—</span>
-                {f[lang]}
-              </li>
-            ))}
-          </ul>
+        <div className="mt-8 border-t border-line">
+          {sections.map((s, i) => (
+            <details key={s.title} className="group border-b border-line" open={i === 0}>
+              <summary className="label flex cursor-pointer list-none items-center justify-between py-4 [&::-webkit-details-marker]:hidden">
+                {s.title}
+                <span className="text-base leading-none transition-transform duration-300 group-open:rotate-45">
+                  +
+                </span>
+              </summary>
+              <div className="pb-5 text-sm leading-relaxed text-muted">{s.body}</div>
+            </details>
+          ))}
         </div>
       </div>
     </div>

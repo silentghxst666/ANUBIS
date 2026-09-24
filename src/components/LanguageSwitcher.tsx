@@ -10,14 +10,14 @@ export default function LanguageSwitcher({ current, label }: { current: Locale; 
   const hrefFor = (locale: Locale) => pathname.replace(/^\/[^/]+/, `/${locale}`);
 
   return (
-    <div className="label flex items-center gap-1" aria-label={label}>
+    <div className="label flex items-center gap-1" role="group" aria-label={label}>
       {locales.map((locale, i) => (
         <span key={locale} className="flex items-center gap-1">
-          {i > 0 && <span className="text-muted">/</span>}
+          {i > 0 && <span className="opacity-40">/</span>}
           {locale === current ? (
             <span aria-current="true">{locale}</span>
           ) : (
-            <Link href={hrefFor(locale)} className="text-muted hover:text-ink" hrefLang={locale}>
+            <Link href={hrefFor(locale)} className="opacity-40 hover:opacity-100" hrefLang={locale}>
               {locale}
             </Link>
           )}

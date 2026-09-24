@@ -2,33 +2,48 @@ import Link from "next/link";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/en";
 import { formatPrice } from "@/lib/format";
-import { totalStock, type Product } from "@/lib/products";
+import { LOW_STOCK, totalStock, type Product } from "@/lib/products";
 import ProductVisual from "./ProductVisual";
 
 export default function ProductCard({
   product,
   lang,
   dict,
+  index,
 }: {
   product: Product;
   lang: Locale;
   dict: Dictionary;
+  /** Position in the collection, shown as "01", "02"… */
+  index?: number;
 }) {
-  const soldOut = totalStock(product) === 0;
+  const stock = totalStock(product);
+  const status =
+    stock === 0
+      ? dict.product.soldOut
+      : stock <= LOW_STOCK
+        ? dict.product.limited.replace("{n}", String(stock))
+        : product.isNew
+          ? dict.product.new
+          : null;
 
   return (
-    <Link href={`/${lang}/product/${product.slug}`} className="group block">
-      <div className="relative">
-        <ProductVisual product={product} />
-        <div className="absolute inset-0 bg-ink/0 transition-colors group-hover:bg-ink/5" />
+    <Link href={`/${lang}/product/${product.slug}`} className="group block" data-cursor="view">
+      <div className="relative overflow-hidden">
+        <div className="transition-transform duration-[1200ms] ease-[var(--ease-weight)] group-hover:scale-[1.03]">
+          <ProductVisual product={product} />
+        </div>
       </div>
-      <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-        <h3 className="text-sm font-semibold">{product.name[lang]}</h3>
-        <span className="whitespace-nowrap text-sm tabular-nums">{formatPrice(product.price)}</span>
+      <div className="mt-4 flex items-baseline gap-3">
+        {index !== undefined && (
+          <span className="label text-muted tabular-nums">{String(index).padStart(2, "0")}</span>
+        )}
+        <h3 className="text-sm font-semibold uppercase tracking-wide">{product.name[lang]}</h3>
       </div>
-      <p className="label mt-1 text-muted">
-        {soldOut ? dict.product.soldOut : dict.product.colors[product.color]}
-        {product.isNew && <span className="text-ink"> · {dict.product.new}</span>}
+      <p className="mt-1 text-sm tabular-nums">{formatPrice(product.price)}</p>
+      <p className="label mt-2 text-muted">
+        {dict.product.colors[product.color]}
+        {status && <span className="text-ink"> · {status}</span>}
       </p>
     </Link>
   );

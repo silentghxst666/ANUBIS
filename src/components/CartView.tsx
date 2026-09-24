@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/en";
 import { setQty, useCart } from "@/lib/cart";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, toUsd } from "@/lib/format";
 
 export type CartProduct = {
   slug: string;
@@ -30,6 +30,7 @@ export default function CartView({
     catalog[item.slug] ? [{ ...item, product: catalog[item.slug] }] : [],
   );
   const subtotal = lines.reduce((sum, l) => sum + l.product.price * l.qty, 0);
+  const subtotalUsd = lines.reduce((sum, l) => sum + toUsd(l.product.price) * l.qty, 0);
 
   if (lines.length === 0) {
     return (
@@ -37,7 +38,7 @@ export default function CartView({
         <p className="text-muted">{labels.empty}</p>
         <Link
           href={`/${lang}/shop`}
-          className="label mt-6 inline-block border border-ink px-6 py-4 hover:bg-ink hover:text-paper"
+          className="label mt-6 inline-block border border-ink px-6 py-4 hover:bg-ink hover:text-white"
         >
           {labels.continue}
         </Link>
@@ -52,7 +53,7 @@ export default function CartView({
           <li key={`${product.slug}-${size}`} className="flex gap-4 py-5">
             <Link
               href={`/${lang}/product/${product.slug}`}
-              className={`relative aspect-[3/4] w-20 shrink-0 overflow-hidden sm:w-24 ${product.color === "black" ? "bg-fill-dark" : "bg-fill"}`}
+              className={`relative aspect-[3/4] w-20 shrink-0 overflow-hidden sm:w-24 ${product.color === "black" ? "bg-ink-2" : "bg-fill"}`}
             >
               {product.image && (
                 <Image src={product.image} alt={product.name} fill sizes="96px" className="object-cover" />
@@ -68,7 +69,7 @@ export default function CartView({
                     {product.sku} · {labels.size} {size}
                   </p>
                 </div>
-                <span className="text-sm tabular-nums">{formatPrice(product.price * qty)}</span>
+                <span className="text-sm tabular-nums">{formatPrice(product.price * qty, toUsd(product.price) * qty)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center border border-line">
@@ -76,7 +77,7 @@ export default function CartView({
                     type="button"
                     className="h-9 w-9 hover:bg-fill"
                     onClick={() => setQty(product.slug, size, qty - 1)}
-                    aria-label="−"
+                    aria-label={labels.decrease}
                   >
                     −
                   </button>
@@ -85,7 +86,7 @@ export default function CartView({
                     type="button"
                     className="h-9 w-9 hover:bg-fill"
                     onClick={() => setQty(product.slug, size, qty + 1)}
-                    aria-label="+"
+                    aria-label={labels.increase}
                   >
                     +
                   </button>
@@ -106,13 +107,13 @@ export default function CartView({
       <div className="mt-8 ml-auto max-w-sm">
         <div className="flex justify-between text-lg font-semibold">
           <span>{labels.subtotal}</span>
-          <span className="tabular-nums">{formatPrice(subtotal)}</span>
+          <span className="tabular-nums">{formatPrice(subtotal, subtotalUsd)}</span>
         </div>
         <p className="mt-2 text-sm text-muted">{labels.deliveryNote}</p>
         <button
           type="button"
           disabled
-          className="label mt-6 h-13 w-full bg-ink text-paper disabled:cursor-not-allowed disabled:opacity-40"
+          className="label mt-6 h-13 w-full bg-ink text-white disabled:cursor-not-allowed disabled:opacity-40"
         >
           {labels.checkout}
         </button>

@@ -1,38 +1,120 @@
 @import "tailwindcss";
 
-/* ANUBIS palette: strictly monochrome. Greys exist only for structure (lines, muted text). */
+/* ANUBIS palette: black and white, used in alternating sections for contrast.
+   Greys exist only for structure (lines, muted text). */
 @theme inline {
-  --color-ink: #0a0a0a;
-  --color-paper: #ffffff;
-  --color-line: #e5e5e5;
-  --color-line-dark: #262626;
-  --color-muted: #737373;
-  --color-muted-dark: #a3a3a3;
-  --color-fill: #f4f4f4;
-  --color-fill-dark: #141414;
+  --color-ink: #050505;
+  --color-ink-2: #0d0d0d;
+  --color-ink-3: #141414;
+  --color-paper: #f2f2f2;
+  --color-white: #ffffff;
+  --color-line: #e2e2e2;
+  --color-line-dark: #1f1f1f;
+  --color-muted: #6b6b6b;
+  --color-muted-dark: #999999;
+  --color-fill: #ececec;
+  --color-fill-dark: #111111;
 
   --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  --ease-weight: cubic-bezier(0.16, 0.84, 0.24, 1);
 }
 
 html {
   -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--color-paper);
+  background: var(--color-white);
   color: var(--color-ink);
 }
 
 ::selection {
   background: var(--color-ink);
-  color: var(--color-paper);
+  color: var(--color-white);
+}
+
+:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 3px;
 }
 
 /* Small uppercase technical label used across the site ("ANB-OW-001", section kickers). */
 @utility label {
   font-family: var(--font-mono);
   font-size: 0.6875rem;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
+}
+
+/* Scroll reveal: elements rise into place with weight rather than just fading. */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 1s var(--ease-weight),
+    transform 1.2s var(--ease-weight);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Hero intro: text arrives after the camera has started moving. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+.intro {
+  animation: rise 1.4s var(--ease-weight) both;
+  animation-delay: var(--intro-delay, 0ms);
+}
+
+/* Film grain: a tiny tiled noise texture, jittered in steps so it reads as film, not blur. */
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-3%, 2%); }
+  50% { transform: translate(2%, -3%); }
+  75% { transform: translate(-2%, -1%); }
+}
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: -10%;
+  pointer-events: none;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain 0.9s steps(3) infinite;
+}
+
+/* Custom cursor is on: hide the system arrow except where text is typed. */
+html.has-cursor,
+html.has-cursor a,
+html.has-cursor button {
+  cursor: none;
+}
+html.has-cursor input,
+html.has-cursor textarea {
+  cursor: text;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .reveal,
+  .intro {
+    opacity: 1;
+    transform: none;
+    animation: none;
+    transition: none;
+  }
+  .grain::after {
+    animation: none;
+  }
 }

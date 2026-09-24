@@ -10,7 +10,7 @@ export default function NotFound() {
         <br />
         <span className="text-muted">Страница не найдена</span>
       </h1>
-      <Link href="/" className="label border border-ink px-6 py-4 hover:bg-ink hover:text-paper">
+      <Link href="/" className="label border border-ink px-6 py-4 hover:bg-ink hover:text-white">
         ANUBIS →
       </Link>
     </div>

@@ -22,7 +22,7 @@ export default async function Shop({ params, searchParams }: PageProps<"/[lang]/
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16">
       <div className="flex items-end justify-between gap-4">
-        <h1 className="text-3xl font-extrabold tracking-tight sm:text-5xl">{dict.shop.title}</h1>
+        <h1 className="text-4xl font-extrabold uppercase tracking-tight sm:text-6xl">{dict.shop.title}</h1>
         <span className="label text-muted tabular-nums">
           {products.length} {dict.shop.items}
         </span>
@@ -42,9 +42,9 @@ export default async function Shop({ params, searchParams }: PageProps<"/[lang]/
       {products.length === 0 ? (
         <p className="py-24 text-center text-muted">{dict.shop.empty}</p>
       ) : (
-        <div className="mt-10 grid grid-cols-2 gap-x-3 gap-y-10 sm:gap-x-6 lg:grid-cols-4">
-          {products.map((p) => (
-            <ProductCard key={p.slug} product={p} lang={lang} dict={dict} />
+        <div className="mt-10 grid grid-cols-2 gap-x-3 gap-y-12 sm:gap-x-6 lg:grid-cols-4">
+          {products.map((p, i) => (
+            <ProductCard key={p.slug} product={p} lang={lang} dict={dict} index={i + 1} />
           ))}
         </div>
       )}
