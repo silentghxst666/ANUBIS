@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { databaseMode, schema } from "@/db";
 import { requireAdmin } from "@/lib/admin-session";
+import { blobAuth } from "@/lib/blob";
 import { catalogDb, fromRow, type Product } from "@/lib/products";
 import ProductForm from "@/components/admin/ProductForm";
 import { deleteProduct } from "../../actions";
@@ -43,8 +44,9 @@ export default async function EditProduct({ params }: PageProps<"/admin/products
     product = fromRow(row);
   }
 
-  // Blob uploads need the token; local development stores files in public/uploads instead.
-  const upload = process.env.BLOB_READ_WRITE_TOKEN ? "blob" : databaseMode === "local" ? "local" : "none";
+  // Local development without Blob stores files in public/uploads instead.
+  const auth = blobAuth();
+  const upload = auth ? (`blob-${auth}` as const) : databaseMode === "local" ? "local" : "none";
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">

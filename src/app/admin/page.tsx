@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { databaseMode } from "@/db";
 import { requireAdmin } from "@/lib/admin-session";
+import { blobAuth } from "@/lib/blob";
 import { formatPrice } from "@/lib/format";
 import { getAllProducts, totalStock } from "@/lib/products";
 import { logout, setPublished } from "./actions";
@@ -14,7 +15,7 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
   await requireAdmin();
   const saved = (await searchParams).saved === "1";
   const products = await getAllProducts();
-  const blobReady = Boolean(process.env.BLOB_READ_WRITE_TOKEN) || databaseMode === "local";
+  const blobReady = blobAuth() !== null || databaseMode === "local";
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">

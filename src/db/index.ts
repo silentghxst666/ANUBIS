@@ -20,7 +20,9 @@ type Ready = {
   /** True only the very first time this database is set up (used to seed the demo catalog). */
   fresh: boolean;
 };
-let ready: Promise<Ready> | null = null;
+// Kept on globalThis so hot reloads in development reuse the connection: opening a second
+// PGlite instance on the same folder in one process aborts it.
+const cache = globalThis as unknown as { __anubisDb?: Promise<Ready> | null };
 
 async function connect(): Promise<Ready> {
   let db: Database;
@@ -51,11 +53,11 @@ async function connect(): Promise<Ready> {
 /** The database, with the schema ensured. Null when the site runs without one. */
 export async function getDatabase(): Promise<Ready | null> {
   if (databaseMode === "none") return null;
-  ready ??= connect().catch((error) => {
-    ready = null; // let the next request retry instead of caching the failure
+  cache.__anubisDb ??= connect().catch((error) => {
+    cache.__anubisDb = null; // let the next request retry instead of caching the failure
     throw error;
   });
-  return ready;
+  return cache.__anubisDb;
 }
 
 export { schema };

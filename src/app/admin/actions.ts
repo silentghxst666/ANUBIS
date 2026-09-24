@@ -8,6 +8,7 @@ import { del } from "@vercel/blob";
 import { schema } from "@/db";
 import { SESSION_COOKIE, SESSION_DAYS, checkPassword, createSessionValue } from "@/lib/auth";
 import { requireAdmin } from "@/lib/admin-session";
+import { blobAuth } from "@/lib/blob";
 import { catalogDb, isCategory, isColor, toRow, type Product } from "@/lib/products";
 
 export type FormState = { error?: string; fieldErrors?: Record<string, string> } | undefined;
@@ -55,7 +56,7 @@ async function database() {
 /** Deletes uploaded files that are no longer referenced. Local /uploads files are kept. */
 async function removeImages(urls: string[]) {
   const blobs = urls.filter((u) => u.includes(".blob.vercel-storage.com"));
-  if (blobs.length && process.env.BLOB_READ_WRITE_TOKEN) {
+  if (blobs.length && blobAuth()) {
     await del(blobs).catch(() => {
       // A leftover file costs almost nothing; never fail the save because of it.
     });

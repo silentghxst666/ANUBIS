@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { upload } from "@vercel/blob/client";
+import { upload, uploadPresigned } from "@vercel/blob/client";
 
-export type UploadMode = "blob" | "local" | "none";
+/** How photos are stored: Vercel Blob (token or OIDC store), local folder in dev, or unavailable. */
+export type UploadMode = "blob-token" | "blob-oidc" | "local" | "none";
 
 const MAX_MB = 15;
 
@@ -18,8 +19,9 @@ export default function ImagesField({ initial, mode }: { initial: string[]; mode
   const [error, setError] = useState<string | null>(null);
 
   async function send(file: File): Promise<string> {
-    if (mode === "blob") {
-      const blob = await upload(`products/${file.name}`, file, {
+    if (mode === "blob-token" || mode === "blob-oidc") {
+      const send = mode === "blob-token" ? upload : uploadPresigned;
+      const blob = await send(`products/${file.name}`, file, {
         access: "public",
         handleUploadUrl: "/api/admin/upload",
       });
