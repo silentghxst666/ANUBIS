@@ -1,26 +1,38 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* ANUBIS palette: strictly monochrome. Greys exist only for structure (lines, muted text). */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-ink: #0a0a0a;
+  --color-paper: #ffffff;
+  --color-line: #e5e5e5;
+  --color-line-dark: #262626;
+  --color-muted: #737373;
+  --color-muted-dark: #a3a3a3;
+  --color-fill: #f4f4f4;
+  --color-fill-dark: #141414;
+
+  --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+::selection {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+/* Small uppercase technical label used across the site ("ANB-OW-001", section kickers). */
+@utility label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
