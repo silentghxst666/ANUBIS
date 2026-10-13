@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Cursor from "@/components/Cursor";
 import { themeBootScript } from "@/lib/theme";
+import { BRAND_ICONS } from "@/lib/brand";
 // Self-hosted fonts (Latin + Cyrillic), bundled from npm — no runtime call to Google Fonts.
 import "@fontsource-variable/manrope";
 import "@fontsource-variable/jetbrains-mono";
@@ -24,6 +25,14 @@ export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Prom
     title: { default: "ANUBIS", template: "%s — ANUBIS" },
     description: dict.meta.description,
     alternates: { languages: { en: "/en", ru: "/ru" } },
+    icons: BRAND_ICONS,
+    openGraph: {
+      type: "website",
+      siteName: "ANUBIS",
+      locale: lang === "ru" ? "ru_RU" : "en_US",
+      images: [{ url: "/brand/og-image.png", width: 1200, height: 630, alt: "ANUBIS — Not made for everyone." }],
+    },
+    twitter: { card: "summary_large_image", images: ["/brand/og-image.png"] },
   };
 }
 

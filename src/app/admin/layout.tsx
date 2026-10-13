@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BRAND_ICONS } from "@/lib/brand";
 import "@fontsource-variable/manrope";
 import "@fontsource-variable/jetbrains-mono";
 import "@fontsource-variable/unbounded";
@@ -8,6 +9,7 @@ import "../globals.css";
 export const metadata: Metadata = {
   title: { default: "Админка", template: "%s — ANUBIS admin" },
   robots: { index: false, follow: false },
+  icons: BRAND_ICONS,
 };
 
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
