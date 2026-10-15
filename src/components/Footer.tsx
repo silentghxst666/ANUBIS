@@ -1,4 +1,5 @@
 import type { Dictionary } from "@/i18n/dictionaries/en";
+import { INSTAGRAM_PROFILE_URL } from "@/lib/contact";
 import Reveal from "./Reveal";
 
 export default function Footer({ dict }: { dict: Dictionary }) {
@@ -15,6 +16,9 @@ export default function Footer({ dict }: { dict: Dictionary }) {
         </Reveal>
         <div className="label flex flex-col gap-2 border-t border-line pt-6 text-muted sm:flex-row sm:justify-between">
           <span>{dict.footer.tagline}</span>
+          <a href={INSTAGRAM_PROFILE_URL} target="_blank" rel="noopener noreferrer" className="hover:text-fg">
+            {dict.footer.instagram} ↗
+          </a>
           <span>{dict.footer.city}</span>
           <span>
             © {new Date().getFullYear()} ANUBIS. {dict.footer.rights}

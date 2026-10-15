@@ -74,14 +74,20 @@ const ru: Dictionary = {
     decrease: "Уменьшить количество",
     increase: "Увеличить количество",
     subtotal: "Итого",
-    checkout: "Оформить заказ",
-    checkoutSoon: "Онлайн-оформление заказа скоро появится.",
-    deliveryNote: "Доставка по Алматы. Стоимость рассчитывается при оформлении.",
+    checkout: "Заказать в Instagram",
+    checkoutNote: "Каждый заказ мы подтверждаем лично. Оплату и доставку обсудим в личных сообщениях Instagram.",
+    copied: "Заказ скопирован — вставьте его в сообщение.",
+    copyFailed: "Скопируйте заказ ниже и вставьте его в сообщение.",
+    copyAgain: "Скопировать ещё раз",
+    orderIntro: "Здравствуйте! Хочу оформить заказ ANUBIS:",
+    orderTotal: "Итого",
+    deliveryNote: "Доставка по Алматы.",
   },
   footer: {
     rights: "Все права защищены.",
     city: "Алматы, Казахстан",
     tagline: "Not made for everyone.",
+    instagram: "Instagram",
   },
 };
 

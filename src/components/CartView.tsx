@@ -6,6 +6,7 @@ import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/en";
 import { setQty, useCart } from "@/lib/cart";
 import { formatPrice, toUsd } from "@/lib/format";
+import InstagramCheckout from "./InstagramCheckout";
 
 export type CartProduct = {
   slug: string;
@@ -31,6 +32,19 @@ export default function CartView({
   );
   const subtotal = lines.reduce((sum, l) => sum + l.product.price * l.qty, 0);
   const subtotalUsd = lines.reduce((sum, l) => sum + toUsd(l.product.price) * l.qty, 0);
+
+  // Plain-text order for the Instagram message: one line per item, then the total.
+  const orderText = [
+    labels.orderIntro,
+    "",
+    ...lines.map(
+      (l, i) =>
+        `${i + 1}. ${l.product.name} (${l.product.sku}) — ${labels.size} ${l.size} × ${l.qty} — ${formatPrice(l.product.price * l.qty, toUsd(l.product.price) * l.qty)}`,
+    ),
+    "",
+    `${labels.orderTotal}: ${formatPrice(subtotal, subtotalUsd)}`,
+    "sibuna.net",
+  ].join("\n");
 
   if (lines.length === 0) {
     return (
@@ -110,14 +124,7 @@ export default function CartView({
           <span className="tabular-nums">{formatPrice(subtotal, subtotalUsd)}</span>
         </div>
         <p className="mt-2 text-sm text-muted">{labels.deliveryNote}</p>
-        <button
-          type="button"
-          disabled
-          className="label mt-6 h-13 w-full bg-fg text-bg disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {labels.checkout}
-        </button>
-        <p className="label mt-3 text-center text-muted">{labels.checkoutSoon}</p>
+        <InstagramCheckout orderText={orderText} labels={labels} />
       </div>
     </div>
   );

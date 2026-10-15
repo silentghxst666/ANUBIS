@@ -73,14 +73,20 @@ const en = {
     decrease: "Decrease quantity",
     increase: "Increase quantity",
     subtotal: "Subtotal",
-    checkout: "Checkout",
-    checkoutSoon: "Online checkout is coming soon.",
-    deliveryNote: "Delivery across Almaty. Cost calculated at checkout.",
+    checkout: "Order via Instagram",
+    checkoutNote: "We confirm every order personally. Payment and delivery are arranged in Instagram direct messages.",
+    copied: "Your order is copied — paste it into the message.",
+    copyFailed: "Copy the order below and paste it into the message.",
+    copyAgain: "Copy again",
+    orderIntro: "Hello! I would like to order from ANUBIS:",
+    orderTotal: "Total",
+    deliveryNote: "Delivery across Almaty.",
   },
   footer: {
     rights: "All rights reserved.",
     city: "Almaty, Kazakhstan",
     tagline: "Not made for everyone.",
+    instagram: "Instagram",
   },
 };
 
