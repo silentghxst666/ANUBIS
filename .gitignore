@@ -43,3 +43,6 @@ next-env.d.ts
 # Local admin data (embedded dev database and uploaded photos)
 /.data
 /public/uploads
+
+# Pattern generator dependencies
+/patterns/**/node_modules

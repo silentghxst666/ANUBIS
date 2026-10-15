@@ -1,0 +1,16 @@
+{
+  "name": "anubis-glove-pattern",
+  "private": true,
+  "description": "Parametric pattern generator for the ANUBIS insulated glove (PDF 1:1, tiled A4, DXF, tech pack).",
+  "scripts": {
+    "build": "node render.js out && node techpack.js out"
+  },
+  "dependencies": {
+    "pdfkit": "^0.20.2",
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^1.0.11",
+    "pdfjs-dist": "4.10.38"
+  }
+}
